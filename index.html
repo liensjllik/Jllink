@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JL-Link Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- ───🕷 Lien vers le fichier CSS ───🕸 -->
+<link rel="stylesheet" href="styles.css">
+
+<!-- ───🕷 Lien vers le fichier JavaScript ───🕸 -->
+<script src="scripts.js" defer></script>
+</head>
+<body>
+    <!-- Section Login (visible au démarrage) -->
+    <div id="login-section">
+        <div id="loadingScreen">
+            <div class="loader"></div>
+        </div>
+        
+        <canvas id="backgroundCanvas"></canvas>
+        <canvas id="iconsCanvas"></canvas>
+        
+        <div class="web-icons" id="webIcons"></div>
+        <div class="spider-web" id="spiderWeb"></div>
+        <div class="camera-web" id="cameraWeb"></div>
+        
+        <div class="login-container" id="loginContainer">
+            <h2 class="login-title" id="loginTitle">
+                <span>C</span><span>o</span><span>n</span><span>n</span><span>e</span><span>x</span><span>i</span><span>o</span><span>n</span>
+            </h2>
+            <div class="form-group" id="usernameGroup">
+                <label for="username">Nom d'utilisateur</label>
+                <div class="input-wrapper">
+                    <input type="text" id="username" class="form-control" placeholder="Entrez votre identifiant">
+                </div>
+            </div>
+            <div class="form-group" id="passwordGroup">
+                <label for="password">Mot de passe</label>
+                <div class="input-wrapper">
+                    <input type="password" id="password" class="form-control" placeholder="Entrez votre mot de passe">
+                    <button type="button" class="password-toggle" id="passwordToggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="login-button" id="loginButton">Se connecter</button>
+        </div>
+
+        <div class="spider" id="spider">
+            <div class="spider-thread"></div>
+            <div class="spider-head">
+                <div class="spider-eyes">
+                    <div class="spider-eye">
+                        <div class="spider-pupil" id="leftPupil"></div>
+                    </div>
+                    <div class="spider-eye">
+                        <div class="spider-pupil" id="rightPupil"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="spider-body"></div>
+            <div class="spider-leg leg-1"></div>
+            <div class="spider-leg leg-2"></div>
+            <div class="spider-leg leg-3"></div>
+            <div class="spider-leg leg-4"></div>
+            <div class="spider-leg leg-5"></div>
+            <div class="spider-leg leg-6"></div>
+            <div class="spider-leg leg-7"></div>
+            <div class="spider-leg leg-8"></div>
+        </div>
+    </div>
+
+    <!-- Section Application (cachée au démarrage) -->
+    <div id="app-section" style="display: none;">
+<!-- ───🕷 Mobile View ───🕸 -->
+    <div class="mobile-view">
+        <div class="mobile-header">
+            <div class="logo">
+                <i class="fas fa-link"></i>
+                JL-Link Manager
+            </div>
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search links and folders...">
+            </div>
+            <div class="overflow-menu">
+                <button class="overflow-menu-btn">
+                    <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+                <div class="overflow-dropdown">
+                    <div class="dropdown-item" id="mobile-select-btn">
+                        <i class="far fa-check-square"></i>
+                        <span>Select</span>
+                    </div>
+                    <div class="dropdown-item" id="mobile-copy-btn">
+                        <i class="far fa-copy"></i>
+                        <span>Copy</span>
+                    </div>
+                    <div class="dropdown-item" id="mobile-move-btn">
+                        <i class="fas fa-file-export"></i>
+                        <span>Move</span>
+                    </div>
+                    <div class="dropdown-item" id="mobile-delete-btn">
+                        <i class="far fa-trash-alt"></i>
+                        <span>Delete</span>
+                    </div>
+                    <div class="dropdown-item" id="mobile-info-btn">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Info</span>
+                    </div>
+                    <div class="dropdown-item" id="mobile-rename-btn">
+                        <i class="far fa-edit"></i>
+                        <span>Rename</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mobile-path">
+            <i class="fas fa-home"></i>
+            <span class="path-item">Storage</span>
+            <span class="separator">/</span>
+            <span class="path-item">Desktop</span>
+        </div>
+        
+        <div class="mobile-content" id="mobile-home-content">
+            <div class="storage-section">
+                <div class="storage-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Cloud Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-apps">24 apps</span> • 
+                        <span id="mobile-top-folders">5 folders</span> • 
+                        <span id="mobile-total-folders">8 folders</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-folder"></i>
+                Storage
+            </div>
+            
+            <div class="grid-container">
+                <div class="folder-item" data-name="Desktop">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Desktop</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Entertainment">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Entertainment</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-clock-rotate-left"></i>
+                Recently Added
+            </div>
+            
+            <div class="grid-container">
+                <div class="app-item" data-name="GitHub">
+                    <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="app-icon">
+                    <div class="item-name">GitHub</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="YouTube">
+                    <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="app-icon">
+                    <div class="item-name">YouTube</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Twitter">
+                    <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="app-icon">
+                    <div class="item-name">Twitter</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Netflix">
+                    <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="app-icon">
+                    <div class="item-name">Netflix</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-folder-open"></i>
+                Recently Modified Folders
+            </div>
+            
+            <div class="grid-container">
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Entertainment">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Entertainment</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mobile-content" id="mobile-explore-content" style="display:none;">
+            <div class="alphabet-filter">
+                <button class="letter-btn active">#</button>
+                <button class="letter-btn">A</button>
+                <button class="letter-btn">B</button>
+                <button class="letter-btn">C</button>
+                <button class="letter-btn">D</button>
+                <button class="letter-btn">E</button>
+                <button class="letter-btn">F</button>
+                <button class="letter-btn">G</button>
+                <button class="letter-btn">H</button>
+                <button class="letter-btn">I</button>
+                <button class="letter-btn">J</button>
+                <button class="letter-btn">K</button>
+                <button class="letter-btn">L</button>
+                <button class="letter-btn">M</button>
+                <button class="letter-btn">N</button>
+                <button class="letter-btn">O</button>
+                <button class="letter-btn">P</button>
+                <button class="letter-btn">Q</button>
+                <button class="letter-btn">R</button>
+                <button class="letter-btn">S</button>
+                <button class="letter-btn">T</button>
+                <button class="letter-btn">U</button>
+                <button class="letter-btn">V</button>
+                <button class="letter-btn">W</button>
+                <button class="letter-btn">X</button>
+                <button class="letter-btn">Y</button>
+                <button class="letter-btn">Z</button>
+            </div>
+            
+            <div class="section-title" id="number-section">
+                <span>#</span>
+            </div>
+            
+            <div class="grid-container">
+                <div class="app-item" data-name="1Password">
+                    <img src="https://www.google.com/s2/favicons?domain=1password.com&sz=64" class="app-icon">
+                    <div class="item-name">1Password</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="500px">
+                    <img src="https://www.google.com/s2/favicons?domain=500px.com&sz=64" class="app-icon">
+                    <div class="item-name">500px</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title" id="a-section">
+                <span>A</span>
+            </div>
+            
+            <div class="grid-container">
+                <div class="app-item" data-name="Airbnb">
+                    <img src="https://www.google.com/s2/favicons?domain=airbnb.com&sz=64" class="app-icon">
+                    <div class="item-name">Airbnb</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Amazon">
+                    <img src="https://www.google.com/s2/favicons?domain=amazon.com&sz=64" class="app-icon">
+                    <div class="item-name">Amazon</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Apple">
+                    <img src="https://www.google.com/s2/favicons?domain=apple.com&sz=64" class="app-icon">
+                    <div class="item-name">Apple</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title" id="b-section">
+                <span>B</span>
+            </div>
+            
+            <div class="grid-container">
+                <div class="app-item" data-name="Behance">
+                    <img src="https://www.google.com/s2/favicons?domain=behance.net&sz=64" class="app-icon">
+                    <div class="item-name">Behance</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Bing">
+                    <img src="https://www.google.com/s2/favicons?domain=bing.com&sz=64" class="app-icon">
+                    <div class="item-name">Bing</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mobile-content" id="mobile-me-content" style="display:none;">
+    <div class="user-section" style="margin: 20px 0;">
+        <div class="user-avatar" style="background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));">JD</div>
+        <div class="user-info">
+            <div class="user-name">John Doe</div>
+            <div class="user-status">Premium User · <span style="color: #4cd137;">Active</span></div>
+        </div>
+    </div>
+    
+    <div class="section-title">
+        <i class="fas fa-shield-alt" style="color: #4cd137;"></i>
+        Surveillance des Appareils
+    </div>
+    
+    <div style="background-color: var(--card-dark); border-radius: var(--border-radius); overflow: hidden; margin-bottom: 15px;">
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-desktop" style="font-size: 1.4rem; color: #42a5f5; margin-right: 15px;"></i>
+                <div>
+                    <div style="font-weight: 600;">HP Spectre x360</div>
+                    <div style="font-size: 0.85rem; color: var(--text-dim);">Appareil principal</div>
+                </div>
+            </div>
+            <div style="background-color: rgba(76, 209, 55, 0.1); padding: 4px 10px; border-radius: 20px; color: #4cd137; font-size: 0.8rem; font-weight: 600;">
+                Actif
+            </div>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-windows" style="color: #42a5f5;"></i>
+            <span>Windows 11 Pro</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">v21H2</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-chrome" style="color: #f39c12;"></i>
+            <span>Chrome</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">v109.0.5414.120</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i>
+            <span>Paris, France</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">48.8566° N, 2.3522° E</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-network-wired" style="color: #3498db;"></i>
+            <span>192.168.1.105</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">IPv4</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-shield-alt" style="color: #4cd137;"></i>
+            <span>Sans VPN</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">Réseau local</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-clock" style="color: #9b59b6;"></i>
+            <span>Dernière connexion</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">À l'instant</span>
+        </div>
+    </div>
+    
+    <div style="background-color: var(--card-dark); border-radius: var(--border-radius); overflow: hidden; margin-bottom: 15px;">
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-mobile-alt" style="font-size: 1.4rem; color: #ff6b81; margin-right: 15px;"></i>
+                <div>
+                    <div style="font-weight: 600;">Itel S23</div>
+                    <div style="font-size: 0.85rem; color: var(--text-dim);">Smartphone</div>
+                </div>
+            </div>
+            <div style="background-color: rgba(255, 107, 129, 0.1); padding: 4px 10px; border-radius: 20px; color: #ff6b81; font-size: 0.8rem; font-weight: 600;">
+                <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px;"></i> Inactif
+            </div>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-android" style="color: #a4c639;"></i>
+            <span>Android 12</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">API 31</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-firefox" style="color: #ff9500;"></i>
+            <span>Firefox</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">v103.0.5</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i>
+            <span>Lyon, France</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">45.7640° N, 4.8357° E</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-wifi" style="color: #3498db;"></i>
+            <span>78.45.123.45</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">WiFi</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-user-secret" style="color: #f1c40f;"></i>
+            <span>VPN Actif</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">NordVPN</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-clock" style="color: #9b59b6;"></i>
+            <span>Dernière connexion</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">Hier, 21:45</span>
+        </div>
+    </div>
+    
+    <div style="background-color: var(--card-dark); border-radius: var(--border-radius); overflow: hidden; margin-bottom: 15px;">
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-tablet-alt" style="font-size: 1.4rem; color: #5352ed; margin-right: 15px;"></i>
+                <div>
+                    <div style="font-weight: 600;">iPad Pro 12.9"</div>
+                    <div style="font-size: 0.85rem; color: var(--text-dim);">Tablette</div>
+                </div>
+            </div>
+            <div style="background-color: rgba(83, 82, 237, 0.1); padding: 4px 10px; border-radius: 20px; color: #5352ed; font-size: 0.8rem; font-weight: 600;">
+                <i class="fas fa-circle" style="font-size: 0.6rem; margin-right: 5px;"></i> Inactif
+            </div>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-apple" style="color: #a4a4a4;"></i>
+            <span>iPadOS 16.2</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">16C67</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fab fa-safari" style="color: #2980b9;"></i>
+            <span>Safari</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">v16.2</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i>
+            <span>Bordeaux, France</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">44.8378° N, 0.5792° W</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-wifi" style="color: #3498db;"></i>
+            <span>89.154.67.89</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">WiFi</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-shield-alt" style="color: #4cd137;"></i>
+            <span>Sans VPN</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">Réseau public</span>
+        </div>
+        
+        <div class="dropdown-item">
+            <i class="fas fa-clock" style="color: #9b59b6;"></i>
+            <span>Dernière connexion</span>
+            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-dim);">07/09/2025, 14:22</span>
+        </div>
+    </div>
+    
+    <div class="section-title" style="margin-top: 25px;">
+        <i class="fas fa-chart-line" style="color: #5352ed;"></i>
+        Activité Récente
+    </div>
+    
+    <div style="background-color: var(--card-dark); border-radius: var(--border-radius); overflow: hidden; margin-bottom: 20px;">
+        <div style="padding: 12px 15px; display: flex; align-items: center;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(76, 209, 55, 0.1); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <i class="fas fa-sign-in-alt" style="color: #4cd137;"></i>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 500;">Connexion réussie</div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; justify-content: space-between;">
+                    <span>HP Spectre x360 · Paris, France</span>
+                    <span>Il y a 2 minutes</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 12px 15px; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(241, 196, 15, 0.1); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <i class="fas fa-user-secret" style="color: #f1c40f;"></i>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 500;">VPN activé</div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; justify-content: space-between;">
+                    <span>Itel S23 · Lyon, France</span>
+                    <span>Hier, 21:42</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 12px 15px; display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.05);">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background-color: rgba(231, 76, 60, 0.1); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                <i class="fas fa-exclamation-triangle" style="color: #e74c3c;"></i>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 500;">Tentative de connexion échouée</div>
+                <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; justify-content: space-between;">
+                    <span>Adresse IP inconnue · Londres, UK</span>
+                    <span>07/09/2025, 08:14</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section-title">
+        <i class="fas fa-fingerprint" style="color: #ff6b81;"></i>
+        Sécurité
+    </div>
+    
+    <div style="background-color: var(--card-dark); border-radius: var(--border-radius); overflow: hidden; margin-bottom: 20px;">
+        <div class="dropdown-item" style="border-left: 3px solid #4cd137;">
+            <i class="fas fa-check-circle" style="color: #4cd137;"></i>
+            <div style="flex: 1;">
+                <div>Authentification à 2 facteurs</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">Activée via Google Authenticator</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color: var(--text-dim);"></i>
+        </div>
+        
+        <div class="dropdown-item" style="border-left: 3px solid #f1c40f;">
+            <i class="fas fa-exclamation-circle" style="color: #f1c40f;"></i>
+            <div style="flex: 1;">
+                <div>Notifications de connexion</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">Actives uniquement pour les nouveaux appareils</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color: var(--text-dim);"></i>
+        </div>
+        
+        <div class="dropdown-item" style="border-left: 3px solid #e74c3c;">
+            <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
+            <div style="flex: 1;">
+                <div>Vérification des appareils</div>
+                <div style="font-size: 0.8rem; color: var(--text-dim);">Non configurée</div>
+            </div>
+            <i class="fas fa-chevron-right" style="color: var(--text-dim);"></i>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+        <button style="background-color: rgba(231, 76, 60, 0.2); color: #e74c3c; border: none; padding: 12px 20px; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+            <i class="fas fa-power-off" style="margin-right: 8px;"></i> Déconnecter tous les appareils
+        </button>
+    </div>
+</div>
+        
+        <div class="mobile-bottom-nav">
+            <div class="nav-item active" data-content="home">
+                <i class="fas fa-home nav-icon"></i>
+                <span>Home</span>
+            </div>
+            <div class="nav-item" data-content="explore">
+                <i class="fas fa-compass nav-icon"></i>
+                <span>Explore</span>
+            </div>
+            <div class="nav-item" data-content="create">
+                <i class="fas fa-plus nav-icon"></i>
+                <span>Create</span>
+            </div>
+            <div class="nav-item" data-content="export">
+                <i class="fas fa-file-export nav-icon"></i>
+                <span>Export</span>
+            </div>
+            <div class="nav-item" data-content="me">
+                <i class="fas fa-user nav-icon"></i>
+                <span>Me</span>
+            </div>
+        </div>
+        
+        <div class="selection-toolbar">
+            <div class="selection-count">0 items selected</div>
+            <div class="selection-actions">
+                <button class="action-btn" id="mobile-select-all">
+                    <i class="fas fa-check-double"></i>
+                </button>
+                <button class="action-btn" id="mobile-selection-copy">
+                    <i class="far fa-copy"></i>
+                </button>
+                <button class="action-btn" id="mobile-selection-move">
+                    <i class="fas fa-file-export"></i>
+                </button>
+                <button class="action-btn" id="mobile-selection-delete">
+                    <i class="far fa-trash-alt"></i>
+                </button>
+                <button class="action-btn" id="mobile-selection-cancel">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+<!-- ───🕷 Desktop View ───🕸 -->
+    <div class="desktop-view">
+ <div class="desktop-header">
+<div class="desktop-header-top">
+    <div class="logo">
+        <i class="fas fa-link"></i>
+        JL-Link Manager
+    </div>
+    
+    <div class="search-container desktop-search">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search links and folders...">
+    </div>
+    
+    <div class="header-actions">
+        <button class="header-btn explore-btn">
+            <i class="fas fa-compass"></i>
+            <span>Explorer</span>
+        </button>
+        <button class="header-btn export-btn">
+            <i class="fas fa-download"></i>
+            <span>Exporter</span>
+        </button>
+    </div>
+</div>
+<div class="desktop-header-nav">
+    <div class="nav-controls">
+        <button class="nav-btn">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="nav-btn">
+            <i class="fas fa-arrow-right"></i>
+        </button>
+        <button class="nav-btn">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+        <button class="nav-btn">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+    
+    <div class="nav-breadcrumb">
+        <i class="fas fa-home"></i>
+        <span class="path-item">Storage</span>
+        <span class="separator">/</span>
+        <span class="path-item">Desktop</span>
+    </div>
+</div>
+
+    
+    <div class="action-buttons">
+        <button class="action-btn" id="desktop-create-btn">
+            <i class="fas fa-folder-plus"></i>
+            <span>Create</span>
+        </button>
+        <button class="action-btn" id="desktop-select-btn">
+            <i class="far fa-check-square"></i>
+            <span>Select</span>
+        </button>
+        <button class="action-btn" id="desktop-copy-btn">
+            <i class="far fa-copy"></i>
+            <span>Copy</span>
+        </button>
+        <button class="action-btn" id="desktop-move-btn">
+            <i class="fas fa-file-export"></i>
+            <span>Move</span>
+        </button>
+        <button class="action-btn" id="desktop-paste-btn">
+            <i class="fas fa-paste"></i>
+            <span>Paste</span>
+        </button>
+        <button class="action-btn" id="desktop-delete-btn">
+            <i class="far fa-trash-alt"></i>
+            <span>Delete</span>
+        </button>
+        <button class="action-btn" id="desktop-rename-btn">
+            <i class="far fa-edit"></i>
+            <span>Rename</span>
+        </button>
+        <button class="action-btn" id="desktop-info-btn">
+            <i class="fas fa-info-circle"></i>
+            <span>Info</span>
+        </button>
+        <button class="action-btn" id="desktop-export-btn">
+            <i class="fas fa-download"></i>
+            <span>Export</span>
+        </button>
+    </div>
+</div>
+
+        
+        <div class="sidebar">
+<div class="sidebar-section">
+    <div class="sidebar-title">
+        <i class="fas fa-home"></i>
+        Home
+    </div>
+    <div class="sidebar-item active">
+        <i class="fas fa-server"></i>
+        <span>Storage</span>
+    </div>
+    <div class="sidebar-item">
+        <i class="fas fa-clock-rotate-left"></i>
+        <span>Recent</span>
+    </div>
+    <div class="sidebar-item">
+        <i class="far fa-star"></i>
+        <span>Favorites</span>
+    </div>
+    
+    <div class="sidebar-subsection">
+        <div class="sidebar-subtitle">
+            <i class="fas fa-folder"></i>
+            Accès rapide
+        </div>
+        
+        <div class="sidebar-quick-folders">
+            <div class="sidebar-folder-item" data-name="Desktop">
+                <div class="sidebar-folder-icon">
+                    <i class="fas fa-folder"></i>
+                    <div class="folder-mini-preview">
+                        <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="mini-icon">
+                    </div>
+                </div>
+                <div class="sidebar-folder-name">Desktop</div>
+            </div>
+            
+            <div class="sidebar-folder-item" data-name="Work">
+                <div class="sidebar-folder-icon">
+                    <i class="fas fa-folder"></i>
+                    <div class="folder-mini-preview">
+                        <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="mini-icon">
+                    </div>
+                </div>
+                <div class="sidebar-folder-name">Work</div>
+            </div>
+            
+            <div class="sidebar-folder-item" data-name="Entertainment">
+                <div class="sidebar-folder-icon">
+                    <i class="fas fa-folder"></i>
+                    <div class="folder-mini-preview">
+                        <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="mini-icon">
+                        <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="mini-icon">
+                    </div>
+                </div>
+                <div class="sidebar-folder-name">Entertainment</div>
+            </div>
+        </div>
+        
+        <div class="sidebar-subtitle">
+            <i class="fas fa-clock-rotate-left"></i>
+            Recently Added
+        </div>
+        
+        <div class="sidebar-quick-apps">
+            <div class="sidebar-app-item" data-name="GitHub">
+                <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="sidebar-app-icon">
+                <div class="sidebar-app-name">GitHub</div>
+            </div>
+            
+            <div class="sidebar-app-item" data-name="YouTube">
+                <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="sidebar-app-icon">
+                <div class="sidebar-app-name">YouTube</div>
+            </div>
+            
+            <div class="sidebar-app-item" data-name="Twitter">
+                <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="sidebar-app-icon">
+                <div class="sidebar-app-name">Twitter</div>
+            </div>
+            
+            <div class="sidebar-app-item" data-name="Netflix">
+                <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="sidebar-app-icon">
+                <div class="sidebar-app-name">Netflix</div>
+            </div>
+        </div>
+        
+<div class="sidebar-subtitle">
+    <i class="fas fa-folder-open"></i>
+    Recently Modified Folders
+</div>
+<div class="sidebar-quick-folders">
+    <div class="sidebar-folder-item" data-name="Work">
+        <div class="sidebar-folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-mini-preview">
+                <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="mini-icon">
+                <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="mini-icon">
+                <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="mini-icon">
+            </div>
+        </div>
+        <div class="sidebar-folder-name">Work</div>
+    </div>
+    
+    <div class="sidebar-folder-item" data-name="Entertainment">
+        <div class="sidebar-folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-mini-preview">
+                <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="mini-icon">
+                <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="mini-icon">
+                <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="mini-icon">
+            </div>
+        </div>
+        <div class="sidebar-folder-name">Entertainment</div>
+    </div>
+</div>
+
+    </div>
+</div>
+
+            
+<div class="sidebar-section">
+    <div class="sidebar-title">
+        <i class="fas fa-folder"></i>
+        Folders
+    </div>
+    <div class="sidebar-item">
+        <div class="modern-pc-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4C2.89543 4 2 4.89543 2 6V15C2 16.1046 2.89543 17 4 17H20C21.1046 17 22 16.1046 22 15V6C22 4.89543 21.1046 4 20 4Z" fill="url(#pc-gradient-1)"/>
+                <path d="M8 20H16M12 17V20" stroke="#5865f2" stroke-width="2" stroke-linecap="round"/>
+                <rect x="4" y="6" width="16" height="9" rx="1" fill="url(#pc-gradient-2)"/>
+                <defs>
+                    <linearGradient id="pc-gradient-1" x1="2" y1="4" x2="22" y2="17" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#5865f2"/>
+                        <stop offset="1" stop-color="#7289da"/>
+                    </linearGradient>
+                    <linearGradient id="pc-gradient-2" x1="4" y1="6" x2="20" y2="15" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#1e1e2e"/>
+                        <stop offset="1" stop-color="#2a2a3a"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+        <span>This PC</span>
+    </div>
+    <div class="folder-tree">
+        <div class="tree-item">
+            <div class="tree-toggle">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <i class="fas fa-folder"></i>
+            <span>Work</span>
+        </div>
+        <div class="tree-item">
+            <div class="tree-toggle">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <i class="fas fa-folder-open"></i>
+            <span>Storage</span>
+        </div>
+        <div class="folder-tree" style="margin-left: 15px;">
+            <div class="tree-item">
+                <div class="tree-toggle" style="visibility: hidden;">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <i class="fas fa-folder"></i>
+                <span>Movies</span>
+            </div>
+            <div class="tree-item">
+                <div class="tree-toggle" style="visibility: hidden;">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                <i class="fas fa-folder"></i>
+                <span>Music</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+            
+            <div class="user-section spider-theme" id="jean-louis-likula-section">
+    <div class="user-avatar spider-avatar">JL</div>
+    <div class="user-info">
+        <div class="user-name">Jean-Louis Likula</div>
+        <div class="user-status"><span class="spider-web-icon">🕸️</span> Spider Fan</div>
+    </div>
+    <i class="fas fa-spider"></i>
+</div>
+
+        </div>
+        
+        <div class="desktop-content">
+ 
+            
+            <div class="grid-container desktop-grid">
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Entertainment">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Entertainment</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="GitHub">
+                    <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="app-icon">
+                    <div class="item-name">GitHub</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="YouTube">
+                    <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="app-icon">
+                    <div class="item-name">YouTube</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Twitter">
+                    <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="app-icon">
+                    <div class="item-name">Twitter</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Netflix">
+                    <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="app-icon">
+                    <div class="item-name">Netflix</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Spotify">
+                    <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="app-icon">
+                    <div class="item-name">Spotify</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Gmail">
+                    <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="app-icon">
+                    <div class="item-name">Gmail</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <span>8 items</span>
+        </div>
+    </div>
+    
+<!-- ───🕷 Context Menu ───🕸 -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="open">
+            <i class="fas fa-external-link-alt"></i>
+            <span>Open</span>
+        </div>
+        <div class="context-menu-item" data-action="select">
+            <i class="far fa-check-square"></i>
+            <span>Select</span>
+        </div>
+        <div class="context-menu-item" data-action="copy">
+            <i class="far fa-copy"></i>
+            <span>Copy</span>
+        </div>
+        <div class="context-menu-item" data-action="move">
+            <i class="fas fa-file-export"></i>
+            <span>Move</span>
+        </div>
+        <div class="context-menu-item" data-action="delete">
+            <i class="far fa-trash-alt"></i>
+            <span>Delete</span>
+        </div>
+        <div class="context-menu-item" data-action="rename">
+            <i class="far fa-edit"></i>
+            <span>Rename</span>
+        </div>
+        <div class="context-menu-item" data-action="info">
+            <i class="fas fa-info-circle"></i>
+            <span>Info</span>
+        </div>
+    </div>
+    
+<!-- ───🕷 Modals ───🕸 -->
+    <div class="modal-overlay" id="create-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Create New Folder</div>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Folder Name</label>
+                    <input type="text" class="form-input" placeholder="Enter folder name">
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary modal-close-btn">Cancel</button>
+                    <button class="btn btn-primary" id="create-folder-btn">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="rename-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Rename</div>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">New Name</label>
+                    <input type="text" class="form-input" id="rename-input" placeholder="Enter new name">
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary modal-close-btn">Cancel</button>
+                    <button class="btn btn-primary" id="rename-btn">Rename</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="add-link-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Add New Link</div>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Link Name</label>
+                    <input type="text" class="form-input" id="link-name-input" placeholder="Enter link name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL</label>
+                    <input type="url" class="form-input" id="link-url-input" placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Folder</label>
+                    <select class="form-input" id="link-folder-select">
+                        <option value="">Desktop (No folder)</option>
+                        <option value="work">Work</option>
+                        <option value="entertainment">Entertainment</option>
+                    </select>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary modal-close-btn">Cancel</button>
+                    <button class="btn btn-primary" id="add-link-btn">Add Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Item Information</div>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="info-content">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="app-icon" style="width: 64px; height: 64px;">
+                        <h3 style="margin-top: 10px;">GitHub</h3>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <strong>Type:</strong> <span>Web Link</span>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>URL:</strong> <span>https://github.com</span>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Location:</strong> <span>Desktop</span>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Added on:</strong> <span>August 10, 2025</span>
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>Last accessed:</strong> <span>August 15, 2025</span>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary modal-close-btn">Close</button>
+                    <button class="btn btn-primary" id="open-link-btn">Open Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="delete-confirm-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Confirm Deletion</div>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px;">Are you sure you want to delete the selected items? This action cannot be undone.</p>
+                <div class="form-buttons">
+                    <button class="btn btn-secondary modal-close-btn">Cancel</button>
+                    <button class="btn btn-primary" style="background-color: #ff5252;" id="confirm-delete-btn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+<!-- ───🕷 Toast Container ───🕸 -->
+    <div class="toast-container" id="toast-container"></div>
+        <!-- Barre de navigation mobile -->
+        <div class="mobile-nav">
+            <!-- Contenu de votre navigation mobile -->
+        </div>
+
+        <!-- Contenu principal -->
+        <div class="main-content">
+            <!-- Contenu de votre application -->
+        </div>
+
+        <!-- Autres éléments de votre application -->
+    </div>
+    
+</body>
+</html>
