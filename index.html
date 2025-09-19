@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- ───🕷 Lien vers le fichier CSS ───🕸 -->
 <link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <!-- ───🕷 Lien vers le fichier JavaScript ───🕸 -->
 <script src="scripts.js" defer></script>
@@ -104,10 +105,25 @@
                         <i class="fas fa-file-export"></i>
                         <span>Move</span>
                     </div>
-                    <div class="dropdown-item" id="mobile-delete-btn">
-                        <i class="far fa-trash-alt"></i>
-                        <span>Delete</span>
-                    </div>
+<div class="dropdown-item" id="mobile-delete-btn">
+    <i class="far fa-eye-slash"></i>
+    <span>Masquer</span>
+    <div class="toggle-switch" id="mobile-mask-toggle">
+        <div class="toggle-track">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
+</div>
+<div class="dropdown-item" id="mobile-show-masked-btn">
+    <i class="fas fa-eye"></i>
+    <span>Afficher masqués</span>
+    <div class="toggle-switch" id="mobile-show-masked-toggle">
+        <div class="toggle-track">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
+</div>
+
                     <div class="dropdown-item" id="mobile-info-btn">
                         <i class="fas fa-info-circle"></i>
                         <span>Info</span>
@@ -635,9 +651,15 @@
                 <button class="action-btn" id="mobile-selection-move">
                     <i class="fas fa-file-export"></i>
                 </button>
-                <button class="action-btn" id="mobile-selection-delete">
-                    <i class="far fa-trash-alt"></i>
-                </button>
+<button class="action-btn" id="mobile-selection-delete">
+    <i class="far fa-eye-slash"></i>
+    <div class="toggle-switch" id="selection-mask-toggle">
+        <div class="toggle-track">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
+</button>
+
                 <button class="action-btn" id="mobile-selection-cancel">
                     <i class="fas fa-times"></i>
                 </button>
@@ -716,10 +738,25 @@
             <i class="fas fa-paste"></i>
             <span>Paste</span>
         </button>
-        <button class="action-btn" id="desktop-delete-btn">
-            <i class="far fa-trash-alt"></i>
-            <span>Delete</span>
-        </button>
+<button class="action-btn" id="desktop-delete-btn">
+    <i class="far fa-eye-slash"></i>
+    <span>Masquer</span>
+    <div class="toggle-switch" id="desktop-mask-toggle">
+        <div class="toggle-track">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
+</button>
+<button class="action-btn" id="desktop-show-masked-btn">
+    <i class="fas fa-eye"></i>
+    <span>Afficher masqués</span>
+    <div class="toggle-switch" id="desktop-show-masked-toggle">
+        <div class="toggle-track">
+            <div class="toggle-knob"></div>
+        </div>
+    </div>
+</button>
+
         <button class="action-btn" id="desktop-rename-btn">
             <i class="far fa-edit"></i>
             <span>Rename</span>
@@ -1006,36 +1043,51 @@
     </div>
     
 <!-- ───🕷 Context Menu ───🕸 -->
-    <div class="context-menu" id="context-menu">
-        <div class="context-menu-item" data-action="open">
-            <i class="fas fa-external-link-alt"></i>
-            <span>Open</span>
-        </div>
-        <div class="context-menu-item" data-action="select">
-            <i class="far fa-check-square"></i>
-            <span>Select</span>
-        </div>
-        <div class="context-menu-item" data-action="copy">
-            <i class="far fa-copy"></i>
-            <span>Copy</span>
-        </div>
-        <div class="context-menu-item" data-action="move">
-            <i class="fas fa-file-export"></i>
-            <span>Move</span>
-        </div>
-        <div class="context-menu-item" data-action="delete">
-            <i class="far fa-trash-alt"></i>
-            <span>Delete</span>
-        </div>
-        <div class="context-menu-item" data-action="rename">
-            <i class="far fa-edit"></i>
-            <span>Rename</span>
-        </div>
-        <div class="context-menu-item" data-action="info">
-            <i class="fas fa-info-circle"></i>
-            <span>Info</span>
+<div class="context-menu" id="context-menu">
+    <div class="context-menu-item" data-action="open">
+        <i class="fas fa-external-link-alt"></i>
+        <span>Open</span>
+    </div>
+    <div class="context-menu-item" data-action="select">
+        <i class="far fa-check-square"></i>
+        <span>Select</span>
+    </div>
+    <div class="context-menu-item" data-action="copy">
+        <i class="far fa-copy"></i>
+        <span>Copy</span>
+    </div>
+    <div class="context-menu-item" data-action="move">
+        <i class="fas fa-file-export"></i>
+        <span>Move</span>
+    </div>
+    <div class="context-menu-item" data-action="mask">
+        <i class="fas fa-eye-slash"></i>
+        <span>Masquer</span>
+        <div class="toggle-switch" id="context-mask-toggle">
+            <div class="toggle-track">
+                <div class="toggle-knob"></div>
+            </div>
         </div>
     </div>
+    <div class="context-menu-item" data-action="rename">
+        <i class="far fa-edit"></i>
+        <span>Rename</span>
+    </div>
+    <div class="context-menu-item" data-action="info">
+        <i class="fas fa-info-circle"></i>
+        <span>Info</span>
+    </div>
+    <div class="context-menu-item" data-action="show-masked-items">
+        <i class="fas fa-eye"></i>
+        <span>Afficher éléments masqués</span>
+        <div class="toggle-switch" id="context-show-masked-toggle">
+            <div class="toggle-track">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
     
 <!-- ───🕷 Modals ───🕸 -->
     <div class="modal-overlay" id="create-modal">

@@ -1,0 +1,2633 @@
+Je veux que chaque dossier que je crée quand je clique sur le bouton :
+            <div class="nav-item" data-content="create">
+                <i class="fas fa-plus nav-icon"></i>
+                <span>Create</span>
+            </div>
+Sur mobile 
+
+Et :
+        <button class="action-btn" id="desktop-create-btn">
+            <i class="fas fa-folder-plus"></i>
+            <span>Create</span>
+        </button>
+
+Sur pc 
+
+Ça s'enregistre directement dans une base de données supabase afin de le conserver pour toujours 
+Je crée déjà les dossiers grâce au Javascript mais ça disparaît après avoir quitté ou rechargé la page , maintenant je veux tout conserver 
+
+Voici à quoi ressemble un dossier de façon statique :
+
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+
+Vu que c'est statique les icônes des applications montrent juste que ces applications sont contenues dans ce dossier 
+
+Quand il n'y a rien dans le dossier ça nous montre :
+    folderItem.innerHTML = `
+        <div class="folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-app-preview">
+                ${previewIcons || '<i class="fas fa-folder-open" style="font-size: 14px; color: #a0a0a0;"></i>'}
+            </div>
+        </div>
+        <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+
+Pour dire que ce dossier est vide ou nouveau 
+
+Vu que mon application web est un gestionnaire, on sait que chaque gestionnaire à un chemin "path"
+,  un page d'accueil "home"
+Et l'endroit où se stock les dossiers principaux "Storage"
+Mon application a déjà tout ça 
+C'est ce qui me permettra de créer des dossiers, des sous-dossiers dans des dossiers 
+
+Voici certains caractéristiques d'un dossier dans mon application :
+- lorsqu'on crée un dossier, il se crée automatiquement dans la vue, dans l'interface et il est éditable, on peut directement lui donner un nom, il vient avec un nom par défaut "nouveau dossier" si je n'ai pas éditer un nom il prendra ce nom par défaut direct et si ce nom existe déjà ça ajoute une numérotation exemple (1) à la fin comme si on était dans un pc windows
+Tout ça mon code le fait déjà, je voulais juste t'expliquer 
+- y'a pas la possibilité de supprimer directement un dossier, car on risque de supprimer quelque chose d'important, c'est pour cela que j'ai opté pour masquer un dossier ou les dossiers qu'on ne souhaite plus voir , toute fois on peut toujours voir les dossiers masqués et le démasquer quand on veut les rendre visible, comme ça y'aura pas de perte définitive 
+- on peut créer des dossiers, des sous-dossiers dans les dossiers créées,...etc.. tout en respectant leur chemin respective
+Tout ça mon code le fait déjà, je voulais juste t'expliquer 
+
+NB: j'avais implémenter 2 sortes de vues, d'aperçu :
+- vue mobile 
+- vue desktop 
+Ce juste une sorte de responsive sur différents écrans car ils auront les mêmes données, les mêmes éléments peu importe l'interface, la vue où le dossier a été créer (mobile ou desktop)
+On retrouvera tout ce qu'on a créer dans les deux vues 
+
+Voici certains Javascript qui s'occupe de la création d'un dossier, de l'aperçu, emplacement....etc :
+
+// Mettre à jour les chemins de navigation
+function updatePaths() {
+    // Récupérer le chemin actuel
+    const currentPath = appData.currentPath;
+    
+    // Mettre à jour le chemin mobile
+    const mobilePath = document.querySelector('.mobile-path');
+    if (mobilePath) {
+        mobilePath.innerHTML = '';
+        
+        // Ajouter l'icône home
+        const homeIcon = document.createElement('i');
+        homeIcon.className = 'fas fa-home';
+        homeIcon.addEventListener('click', () => navigateTo(['Home']));
+        mobilePath.appendChild(homeIcon);
+        
+        // Ajouter les éléments du chemin (sauf Home qui est représenté par l'icône)
+        currentPath.slice(1).forEach((folder, index) => {
+            // Ajouter un séparateur avant chaque élément
+            const separator = document.createElement('span');
+            separator.className = 'separator';
+            separator.textContent = '/';
+            mobilePath.appendChild(separator);
+            
+            const pathItem = document.createElement('span');
+            pathItem.className = 'path-item';
+            pathItem.textContent = folder;
+            pathItem.addEventListener('click', () => {
+                navigateTo(currentPath.slice(0, index + 2)); // +2 pour compenser le slice(1) et l'indexation 0
+            });
+            mobilePath.appendChild(pathItem);
+        });
+    }
+    
+    // Mettre à jour le chemin desktop
+    const desktopPath = document.querySelector('.nav-breadcrumb');
+    if (desktopPath) {
+        desktopPath.innerHTML = '';
+        
+        // Ajouter l'icône home
+        const desktopHomeIcon = document.createElement('i');
+        desktopHomeIcon.className = 'fas fa-home';
+        desktopHomeIcon.addEventListener('click', () => navigateTo(['Home']));
+        desktopPath.appendChild(desktopHomeIcon);
+        
+        // Ajouter les éléments du chemin (sauf Home qui est représenté par l'icône)
+        currentPath.slice(1).forEach((folder, index) => {
+            // Ajouter un séparateur avant chaque élément
+            const separator = document.createElement('span');
+            separator.className = 'separator';
+            separator.textContent = '/';
+            desktopPath.appendChild(separator);
+            
+            const pathItem = document.createElement('span');
+            pathItem.className = 'path-item';
+            pathItem.textContent = folder;
+            pathItem.addEventListener('click', () => {
+                navigateTo(currentPath.slice(0, index + 2)); // +2 pour compenser le slice(1) et l'indexation 0
+            });
+            desktopPath.appendChild(pathItem);
+        });
+    }
+}
+
+    
+    // Naviguer vers un dossier
+    function navigateTo(path) {
+        appData.currentPath = path;
+        updatePaths();
+        updateContent();
+    }
+    
+    // Récupérer le dossier actuel
+    function getCurrentFolder() {
+        let current = fileSystem;
+        for (const folder of appData.currentPath) {
+            current = current[folder] ? current[folder] : current.items[folder];
+        }
+        return current;
+    }
+
+// Créer un élément dossier pour le sidebar
+function createSidebarFolderItem(name, folder) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'sidebar-folder-item';
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des applications dans le dossier
+    const previewIcons = getPreviewIcons(folder.items);
+    
+    folderItem.innerHTML = `
+        <div class="sidebar-folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-mini-preview">
+                ${previewIcons}
+            </div>
+        </div>
+        <div class="sidebar-folder-name">${name}</div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function() {
+        navigateTo(['Home', 'Storage', name]);
+    });
+    
+    return folderItem;
+}
+
+// Créer un élément application pour le sidebar
+function createSidebarAppItem(name, url) {
+    const appItem = document.createElement('div');
+    appItem.className = 'sidebar-app-item';
+    appItem.setAttribute('data-name', name);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="sidebar-app-icon">
+        <div class="sidebar-app-name">${name}</div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function() {
+        showToast(`Opening ${name}`, 'info');
+    });
+    
+    return appItem;
+}
+
+// Obtenir les icônes de preview pour un dossier
+function getPreviewIcons(items) {
+    let previewIcons = '';
+    const appKeys = Object.keys(items).filter(key => items[key].type === 'app').slice(0, 3);
+    
+    if (appKeys.length === 0) {
+        return '';
+    }
+    
+    appKeys.forEach(appName => {
+        const domain = items[appName].url.replace('https://', '').split('/')[0];
+        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="mini-icon">`;
+    });
+    
+    return previewIcons;
+}
+
+    
+// Créer un élément dossier
+function createFolderItem(name) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'folder-item';
+    if (name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked)) {
+        folderItem.classList.add('masked-item');
+    }
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des applications dans le dossier
+    let previewIcons = '';
+    const folderItems = getCurrentFolder().items[name].items;
+    const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
+    
+    appKeys.forEach(appName => {
+        const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
+        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
+    });
+    
+    folderItem.innerHTML = `
+        <div class="folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-app-preview">
+                ${previewIcons || '<i class="fas fa-folder-open" style="font-size: 14px; color: #a0a0a0;"></i>'}
+            </div>
+        </div>
+        <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom du dossier, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Sinon, naviguer vers le dossier
+            const newPath = [...appData.currentPath, name];
+            navigateTo(newPath);
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    folderItem.addEventListener('contextmenu', e => {
+        if (contextMenu) {
+            showContextMenu(e, folderItem);
+            // Mettre à jour l'état du toggle de masquage
+            const maskToggle = document.getElementById('context-mask-toggle');
+            if (maskToggle) {
+                const isMasked = name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked);
+                maskToggle.classList.toggle('active', isMasked);
+            }
+        }
+    });
+    
+    return folderItem;
+}
+
+
+// Nouvelle fonction pour rendre un nom d'élément éditable
+function makeItemNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing) {
+        finishEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    const itemType = parentItem.classList.contains('folder-item') ? 'folder' : 'app';
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Gérer la touche Entrée et la perte de focus
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+        }
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    
+    nameElement.addEventListener('blur', function onBlur() {
+        finishEditing(nameElement);
+        nameElement.removeEventListener('blur', onBlur);
+    });
+    
+    // Fonction pour terminer l'édition
+    function finishEditing(element) {
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            // Pour les dossiers, on doit mettre à jour le système de fichiers
+            if (itemType === 'folder') {
+                renameFolder(currentName, newName);
+            } else if (itemType === 'app') {
+                renameApp(currentName, newName);
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+// Nouvelle fonction pour renommer un dossier
+function renameFolder(oldName, newName) {
+    const currentFolder = getCurrentFolder();
+    
+    // Vérifier si le nouveau nom existe déjà
+    if (currentFolder.items[newName]) {
+        showToast(`A folder named "${newName}" already exists`, 'error');
+        // Rétablir l'ancien nom dans l'interface
+        const folderItem = document.querySelector(`.folder-item[data-name="${oldName}"]`);
+        if (folderItem) {
+            folderItem.querySelector('.item-name').textContent = oldName;
+        }
+        return;
+    }
+    
+    // Copier l'objet avec le nouveau nom
+    currentFolder.items[newName] = currentFolder.items[oldName];
+    // Supprimer l'ancien
+    delete currentFolder.items[oldName];
+    
+    // Mettre à jour l'attribut data-name de l'élément
+    const folderItem = document.querySelector(`.folder-item[data-name="${oldName}"]`);
+    if (folderItem) {
+        folderItem.setAttribute('data-name', newName);
+    }
+    
+    showToast(`Folder renamed to "${newName}"`, 'success');
+    
+    // Mettre à jour l'interface
+    updateContent();
+}
+
+// Nouvelle fonction pour renommer une application
+function renameApp(oldName, newName) {
+    const currentFolder = getCurrentFolder();
+    
+    // Vérifier si le nouveau nom existe déjà
+    if (currentFolder.items[newName]) {
+        showToast(`An app named "${newName}" already exists`, 'error');
+        // Rétablir l'ancien nom dans l'interface
+        const appItem = document.querySelector(`.app-item[data-name="${oldName}"]`);
+        if (appItem) {
+            appItem.querySelector('.item-name').textContent = oldName;
+        }
+        return;
+    }
+    
+    // Copier l'objet avec le nouveau nom
+    currentFolder.items[newName] = currentFolder.items[oldName];
+    // Supprimer l'ancien
+    delete currentFolder.items[oldName];
+    
+    // Mettre à jour l'attribut data-name de l'élément
+    const appItem = document.querySelector(`.app-item[data-name="${oldName}"]`);
+    if (appItem) {
+        appItem.setAttribute('data-name', newName);
+    }
+    
+    showToast(`App renamed to "${newName}"`, 'success');
+    
+    // Mettre à jour l'interface
+    updateContent();
+}
+
+// Nouvelle fonction pour créer un dossier directement dans la vue
+function createNewFolderInDesktop() {
+    // Vérifier si on est dans la vue desktop
+    const desktopGrid = document.querySelector('.desktop-grid');
+    if (!desktopGrid) return;
+    
+    // Si on est dans Home, naviguer vers Storage d'abord
+    if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+        navigateTo(['Home', 'Storage']);
+        // Attendre que la navigation soit terminée avant de créer le dossier
+        setTimeout(() => createNewFolderInDesktop(), 100);
+        return;
+    }
+    
+    // Générer un nom de dossier temporaire unique
+    let tempName = "New Folder";
+    let counter = 1;
+    const currentFolder = getCurrentFolder();
+    
+    while (currentFolder.items[tempName]) {
+        tempName = `New Folder (${counter})`;
+        counter++;
+    }
+    
+    // Créer le dossier dans le système de fichiers
+    currentFolder.items[tempName] = {
+        type: 'folder',
+        items: {}
+    };
+    
+    // Créer l'élément visuel du dossier
+    const newFolderItem = createFolderItem(tempName);
+    desktopGrid.appendChild(newFolderItem);
+    
+    // Mettre le nom en mode édition immédiatement
+    const nameElement = newFolderItem.querySelector('.item-name');
+    
+    // Petit délai pour s'assurer que l'élément est bien rendu
+    setTimeout(() => {
+        makeItemNameEditable(nameElement, newFolderItem);
+    }, 50);
+}
+
+    
+// Créer un élément application
+function createAppItem(name, url) {
+    const appItem = document.createElement('div');
+    appItem.className = 'app-item';
+    if (name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked)) {
+        appItem.classList.add('masked-item');
+    }
+    appItem.setAttribute('data-name', name);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de l'app, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Sinon, ouvrir l'application
+            showToast(`Opening ${name.startsWith('#') ? name.substring(1) : name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    appItem.addEventListener('contextmenu', e => {
+        if (contextMenu) {
+            showContextMenu(e, appItem);
+            // Mettre à jour l'état du toggle de masquage
+            const maskToggle = document.getElementById('context-mask-toggle');
+            if (maskToggle) {
+                const isMasked = name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked);
+                maskToggle.classList.toggle('active', isMasked);
+            }
+        }
+    });
+    
+    return appItem;
+}
+
+    
+    // Créer un élément dossier pour l'écran d'accueil
+function createQuickFolderItem(name, folder) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'folder-item';
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des applications dans le dossier
+    let previewIcons = '';
+    const folderItems = folder.items;
+    const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
+    
+    appKeys.forEach(appName => {
+        const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
+        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
+    });
+    
+    folderItem.innerHTML = `
+        <div class="folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-app-preview">
+                ${previewIcons || '<i class="fas fa-folder-open" style="font-size: 14px; color: #a0a0a0;"></i>'}
+            </div>
+        </div>
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom du dossier, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeQuickFolderNameEditable(e.target, this);
+                return;
+            }
+            // Naviguer vers le dossier dans Storage
+            const newPath = ['Home', 'Storage', name];
+            navigateTo(newPath);
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    folderItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, folderItem);
+    });
+    
+    return folderItem;
+}
+
+// Fonction spécifique pour l'édition des dossiers rapides
+function makeQuickFolderNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing) {
+        finishQuickFolderEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Gérer la touche Entrée et la perte de focus
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishQuickFolderEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+        }
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    
+    nameElement.addEventListener('blur', function onBlur() {
+        finishQuickFolderEditing(nameElement);
+        nameElement.removeEventListener('blur', onBlur);
+    });
+    
+    // Fonction pour terminer l'édition d'un dossier rapide
+    function finishQuickFolderEditing(element) {
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            // Renommer le dossier dans Storage
+            if (fileSystem.Home.items.Storage && fileSystem.Home.items.Storage.items[currentName]) {
+                // Vérifier si le nouveau nom existe déjà
+                if (fileSystem.Home.items.Storage.items[newName]) {
+                    showToast(`A folder named "${newName}" already exists in Storage`, 'error');
+                    element.textContent = currentName;
+                    return;
+                }
+                
+                // Copier l'objet avec le nouveau nom
+                fileSystem.Home.items.Storage.items[newName] = fileSystem.Home.items.Storage.items[currentName];
+                // Supprimer l'ancien
+                delete fileSystem.Home.items.Storage.items[currentName];
+                
+                // Mettre à jour l'attribut data-name de l'élément
+                parentItem.setAttribute('data-name', newName);
+                
+                showToast(`Folder renamed to "${newName}"`, 'success');
+                
+                // Mettre à jour l'interface
+                updateContent();
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+
+// Fonction spécifique pour l'édition des apps rapides
+function makeHomeAppNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing) {
+        finishHomeAppEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    const folderName = parentItem.getAttribute('data-folder');
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Gérer la touche Entrée et la perte de focus
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishHomeAppEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+        }
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    
+    nameElement.addEventListener('blur', function onBlur() {
+        finishHomeAppEditing(nameElement);
+        nameElement.removeEventListener('blur', onBlur);
+    });
+    
+    // Fonction pour terminer l'édition d'une app rapide
+    function finishHomeAppEditing(element) {
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            // Renommer l'app dans le dossier parent
+            if (fileSystem.Home.items.Storage && 
+                fileSystem.Home.items.Storage.items[folderName] &&
+                fileSystem.Home.items.Storage.items[folderName].items[currentName]) {
+                
+                // Vérifier si le nouveau nom existe déjà
+                if (fileSystem.Home.items.Storage.items[folderName].items[newName]) {
+                    showToast(`An app named "${newName}" already exists in ${folderName}`, 'error');
+                    element.textContent = currentName;
+                    return;
+                }
+                
+                // Copier l'objet avec le nouveau nom
+                fileSystem.Home.items.Storage.items[folderName].items[newName] = 
+                    fileSystem.Home.items.Storage.items[folderName].items[currentName];
+                
+                // Supprimer l'ancien
+                delete fileSystem.Home.items.Storage.items[folderName].items[currentName];
+                
+                // Mettre à jour l'attribut data-name de l'élément
+                parentItem.setAttribute('data-name', newName);
+                
+                showToast(`App renamed to "${newName}"`, 'success');
+                
+                // Mettre à jour l'interface
+                updateContent();
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+
+// Créer un élément application pour l'écran d'accueil
+function createHomeAppItem(name, url, folderName) {
+    const appItem = document.createElement('div');
+    appItem.className = 'app-item';
+    appItem.setAttribute('data-name', name);
+    appItem.setAttribute('data-folder', folderName);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de l'app, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeHomeAppNameEditable(e.target, this);
+                return;
+            }
+            // Ouvrir l'application
+            showToast(`Opening ${name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    appItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, appItem);
+    });
+    
+    return appItem;
+}
+
+// Nouvelle fonction pour créer un dossier directement dans la vue mobile
+function createNewFolderInMobile() {
+    // Si nous sommes sur la page d'accueil, naviguer vers Storage d'abord
+    if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+        navigateTo(['Home', 'Storage']);
+        // Attendre que la navigation soit terminée avant de créer le dossier
+        setTimeout(() => createNewFolderInMobile(), 100);
+        return;
+    }
+    
+    // Générer un nom de dossier temporaire unique
+    let tempName = "New Folder";
+    let counter = 1;
+    const currentFolder = getCurrentFolder();
+    
+    while (currentFolder.items[tempName]) {
+        tempName = `New Folder (${counter})`;
+        counter++;
+    }
+    
+    // Créer le dossier dans le système de fichiers
+    currentFolder.items[tempName] = {
+        type: 'folder',
+        items: {}
+    };
+    
+    // Mettre à jour le contenu et trouver le nouvel élément
+    updateContent();
+    
+    // Trouver le nouvel élément créé
+    setTimeout(() => {
+        const newFolderItem = document.querySelector(`.folder-item[data-name="${tempName}"]`);
+        if (newFolderItem) {
+            const nameElement = newFolderItem.querySelector('.item-name');
+            makeItemNameEditable(nameElement, newFolderItem);
+        }
+    }, 100);
+    
+    // Réinitialiser la navigation active si nécessaire
+    const homeNavItem = document.querySelector('.mobile-bottom-nav .nav-item[data-content="home"]');
+    if (homeNavItem) {
+        document.querySelectorAll('.mobile-bottom-nav .nav-item').forEach(navItem => {
+            navItem.classList.remove('active');
+        });
+        homeNavItem.classList.add('active');
+    }
+}
+
+    
+// Mobile navigation
+mobileNavItems.forEach(item => {
+    item.addEventListener('click', function() {
+        const contentId = this.getAttribute('data-content');
+        
+        // Update navigation active state
+        mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update content visibility
+        if (contentId === 'create') {
+            // Créer un dossier directement dans l'interface
+            createNewFolderInMobile();
+            return;
+        }
+        
+        mobileContentSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        if (contentId === 'home') {
+            const homeContent = document.getElementById('mobile-home-content');
+            if (homeContent) {
+                homeContent.style.display = 'block';
+                appData.currentView = 'home';
+                updateContent();
+            }
+        } else if (contentId === 'explore') {
+            const exploreContent = document.getElementById('mobile-explore-content');
+            if (exploreContent) {
+                exploreContent.style.display = 'block';
+                appData.currentView = 'explore';
+            }
+        } else if (contentId === 'me') {
+            const meContent = document.getElementById('mobile-me-content');
+            if (meContent) {
+                meContent.style.display = 'block';
+                appData.currentView = 'me';
+            }
+        }
+    });
+});
+
+// Ajoutez cette variable d'état global
+appData.showMaskedItems = true; // Par défaut, afficher les éléments masqués
+
+// Fonction pour basculer l'état de masquage d'un élément
+function toggleItemMask(itemName) {
+    const currentFolder = getCurrentFolder();
+    if (currentFolder && currentFolder.items && currentFolder.items[itemName]) {
+        const item = currentFolder.items[itemName];
+        
+        // Basculer l'état masqué
+        if (item.masked) {
+            delete item.masked;
+            // Enlever le préfixe # du nom si présent
+            if (itemName.startsWith('#')) {
+                const newName = itemName.substring(1);
+                currentFolder.items[newName] = item;
+                delete currentFolder.items[itemName];
+                return newName; // Retourner le nouveau nom
+            }
+        } else {
+            item.masked = true;
+            // Ajouter le préfixe # au nom s'il n'est pas présent
+            if (!itemName.startsWith('#')) {
+                const newName = `#${itemName}`;
+                currentFolder.items[newName] = item;
+                delete currentFolder.items[itemName];
+                return newName; // Retourner le nouveau nom
+            }
+        }
+    }
+    return itemName; // Retourner le nom d'origine si rien n'a changé
+}
+
+// Fonction pour basculer l'affichage des éléments masqués
+function toggleShowMaskedItems() {
+    appData.showMaskedItems = !appData.showMaskedItems;
+    
+    // Ajouter ou supprimer la classe CSS du corps du document
+    if (!appData.showMaskedItems) {
+        document.body.classList.add('hide-masked-items');
+    } else {
+        document.body.classList.remove('hide-masked-items');
+    }
+    
+    updateContent();
+    return appData.showMaskedItems;
+}
+
+    
+    // Overflow menu
+    if (overflowMenuBtn) {
+        overflowMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (overflowDropdown) overflowDropdown.classList.toggle('visible');
+        });
+    }
+    
+    // Hide overflow menu when clicking elsewhere
+    document.addEventListener('click', function() {
+        if (overflowDropdown) overflowDropdown.classList.remove('visible');
+    });
+
+    // Prevent event propagation when clicking inside dropdown
+    if (overflowDropdown) {
+        overflowDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+    
+    // Context menu
+    function showContextMenu(e, item) {
+    e.preventDefault();
+    
+    if (contextMenu) {
+        // Position the context menu
+        contextMenu.style.left = `${e.pageX}px`;
+        contextMenu.style.top = `${e.pageY}px`;
+        contextMenu.style.display = 'block';
+        
+        // Store reference to the target item
+        const itemName = item.getAttribute('data-name');
+        contextMenu.setAttribute('data-target-item', itemName);
+        
+        // Mettre à jour l'état du toggle de masquage
+        const maskToggle = document.getElementById('context-mask-toggle');
+        if (maskToggle) {
+            const currentFolder = getCurrentFolder();
+            const isMasked = itemName.startsWith('#') || (currentFolder.items[itemName] && currentFolder.items[itemName].masked);
+            maskToggle.classList.toggle('active', isMasked);
+        }
+        
+        // Mettre à jour l'état du toggle d'affichage des éléments masqués
+        const showMaskedToggle = document.getElementById('context-show-masked-toggle');
+        if (showMaskedToggle) {
+            showMaskedToggle.classList.toggle('active', appData.showMaskedItems);
+        }
+        
+        // Hide menu when clicking elsewhere
+        function hideMenu() {
+            contextMenu.style.display = 'none';
+            document.removeEventListener('click', hideMenu);
+        }
+        
+        setTimeout(() => {
+            document.addEventListener('click', hideMenu);
+        }, 0);
+    }
+}
+
+
+    
+// Handle context menu actions
+if (contextMenu) {
+    contextMenu.addEventListener('click', function(e) {
+        const menuItem = e.target.closest('.context-menu-item');
+        if (!menuItem) return;
+        
+        const action = menuItem.getAttribute('data-action');
+        const targetItemName = contextMenu.getAttribute('data-target-item');
+        const targetItem = document.querySelector(`.folder-item[data-name="${targetItemName}"], .app-item[data-name="${targetItemName}"]`);
+        
+        if (action === 'open') {
+            showToast('Opening link...', 'info');
+        } else if (action === 'select') {
+            toggleSelectionMode(true);
+        } else if (action === 'copy') {
+            showToast('Item copied', 'success');
+        } else if (action === 'move') {
+            showToast('Ready to move item', 'info');
+        } else if (action === 'mask') {
+            if (targetItem) {
+                const maskToggle = document.getElementById('context-mask-toggle');
+                if (maskToggle) {
+                    maskToggle.classList.toggle('active');
+                    const newName = toggleItemMask(targetItemName);
+                    showToast(`Élément ${maskToggle.classList.contains('active') ? 'masqué' : 'visible'}`, 'success');
+                    updateContent();
+                }
+            }
+        } else if (action === 'rename') {
+            if (targetItem) {
+                const nameElement = targetItem.querySelector('.item-name');
+                makeItemNameEditable(nameElement, targetItem);
+            }
+        } else if (action === 'info') {
+            if (infoModal) showModal('info-modal');
+        } else if (action === 'show-masked-items') {
+            const showMaskedToggle = document.getElementById('context-show-masked-toggle');
+            if (showMaskedToggle) {
+                const isShowing = toggleShowMaskedItems();
+                showMaskedToggle.classList.toggle('active', isShowing);
+                showToast(`Éléments masqués ${isShowing ? 'affichés' : 'cachés'}`, 'info');
+            }
+        }
+    });
+}
+
+
+    
+    // Selection toolbar actions
+    if (mobileSelectAll) {
+        mobileSelectAll.addEventListener('click', function() {
+            const allItems = document.querySelectorAll('.folder-item, .app-item');
+            const allSelected = appData.selectedItems.length === allItems.length;
+            
+            if (allSelected) {
+                // Deselect all
+                appData.selectedItems = [];
+                document.querySelectorAll('.selection-checkbox').forEach(checkbox => {
+                    checkbox.classList.remove('selected');
+                });
+            } else {
+                // Select all
+                appData.selectedItems = [];
+                allItems.forEach(item => {
+                    const itemName = item.getAttribute('data-name');
+                    appData.selectedItems.push(itemName);
+                    item.querySelector('.selection-checkbox').classList.add('selected');
+                });
+            }
+            
+            updateSelectionCount();
+        });
+    }
+    
+    if (mobileSelectionCopy) {
+        mobileSelectionCopy.addEventListener('click', function() {
+            if (appData.selectedItems.length > 0) {
+                appData.clipboardItems = [...appData.selectedItems];
+                appData.clipboardOperation = 'copy';
+                showToast(`${appData.selectedItems.length} items copied`, 'success');
+                toggleSelectionMode(false);
+            }
+        });
+    }
+    
+    if (mobileSelectionMove) {
+        mobileSelectionMove.addEventListener('click', function() {
+            if (appData.selectedItems.length > 0) {
+                appData.clipboardItems = [...appData.selectedItems];
+                appData.clipboardOperation = 'move';
+                showToast(`${appData.selectedItems.length} items ready to move`, 'info');
+                toggleSelectionMode(false);
+            }
+        });
+    }
+    
+    if (mobileSelectionDelete) {
+        mobileSelectionDelete.addEventListener('click', function() {
+            if (appData.selectedItems.length > 0 && deleteConfirmModal) {
+                showModal('delete-confirm-modal');
+            }
+        });
+    }
+    
+    if (mobileSelectionCancel) {
+        mobileSelectionCancel.addEventListener('click', function() {
+            toggleSelectionMode(false);
+        });
+    }
+    
+    // Mobile action buttons
+    if (mobileSelectBtn) {
+        mobileSelectBtn.addEventListener('click', function() {
+            toggleSelectionMode(true);
+            if (overflowDropdown) overflowDropdown.classList.remove('visible');
+        });
+    }
+    
+    // Desktop action buttons
+    if (desktopSelectBtn) {
+        desktopSelectBtn.addEventListener('click', function() {
+            toggleSelectionMode(true);
+        });
+    }
+    
+    if (desktopCreateBtn) {
+    desktopCreateBtn.addEventListener('click', function() {
+        // Créer un dossier directement dans la vue desktop
+        createNewFolderInDesktop();
+    });
+}
+    if (desktopRenameBtn) {
+    desktopRenameBtn.addEventListener('click', function() {
+        // Vérifier s'il y a des éléments sélectionnés
+        if (appData.selectedItems.length === 1) {
+            const itemName = appData.selectedItems[0];
+            const itemElement = document.querySelector(`.folder-item[data-name="${itemName}"], .app-item[data-name="${itemName}"]`);
+            
+            if (itemElement) {
+                const nameElement = itemElement.querySelector('.item-name');
+                makeItemNameEditable(nameElement, itemElement);
+            }
+        } else if (appData.selectedItems.length === 0) {
+            showToast('Please select an item to rename', 'info');
+        } else {
+            showToast('Please select only one item to rename', 'info');
+        }
+    });
+}
+    if (mobileRenameBtn) {
+    mobileRenameBtn.addEventListener('click', function() {
+        if (overflowDropdown) overflowDropdown.classList.remove('visible');
+        
+        // Si nous avons un élément sélectionné
+        if (appData.selectedItems.length === 1) {
+            const itemName = appData.selectedItems[0];
+            const itemElement = document.querySelector(`.folder-item[data-name="${itemName}"], .app-item[data-name="${itemName}"]`);
+            
+            if (itemElement) {
+                const nameElement = itemElement.querySelector('.item-name');
+                makeItemNameEditable(nameElement, itemElement);
+            }
+        } else {
+            showToast('Please select an item to rename', 'info');
+        }
+    });
+}
+
+// Tree toggling 
+document.addEventListener('DOMContentLoaded', function() {
+    // Cette fonction sera remplacée par une initialisation dynamique
+    function setupTreeToggles() {
+        document.querySelectorAll('.tree-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const treeItem = this.closest('.tree-item');
+                const icon = this.querySelector('i');
+                const isExpanded = icon.classList.contains('fa-chevron-down');
+                
+                if (isExpanded) {
+                    icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                    // Hide children
+                    const nextSibling = treeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'none';
+                    }
+                } else {
+                    icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                    // Show children
+                    const nextSibling = treeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'block';
+                    }
+                }
+            });
+        });
+    }
+    
+    // Appeler cette fonction au chargement initial
+    setupTreeToggles();
+});
+
+    
+// Gérer les clics sur les éléments de la barre latérale
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const span = this.querySelector('span');
+        if (!span) return;
+        
+        const text = span.textContent;
+        
+        if (text === 'Storage') {
+            navigateTo(['Home', 'Storage']);
+        } else if (text === 'Recent') {
+            showToast('Recent view not implemented', 'info');
+        } else if (text === 'Favorites') {
+            showToast('Favorites view not implemented', 'info');
+        } else if (text === 'This PC') {
+            showToast('This PC view not implemented', 'info');
+        }
+        
+        // Mettre à jour l'état actif
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+    
+    // Gérer les clics sur les dossiers rapides de la barre latérale
+    document.querySelectorAll('.sidebar-folder-item, .sidebar-app-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            
+            if (this.classList.contains('sidebar-folder-item')) {
+                // Trouver le chemin du dossier
+                const newPath = ['Storage', name];
+                navigateTo(newPath);
+            } else {
+                // Ouvrir l'application
+                showToast(`Opening ${name}`, 'info');
+            }
+        });
+    });
+    
+    // Gérer les clics sur les éléments de l'arborescence
+    document.querySelectorAll('.tree-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Ne pas exécuter si le clic était sur le toggle
+            if (e.target.closest('.tree-toggle')) return;
+            
+            const span = this.querySelector('span');
+            if (!span) return;
+            
+            const folderName = span.textContent;
+            
+            if (folderName === 'Storage') {
+                navigateTo(['Storage']);
+            } else if (folderName === 'Work') {
+                navigateTo(['Storage', 'Work']);
+            } else if (folderName === 'Movies') {
+                navigateTo(['Storage', 'Movies']);
+            } else if (folderName === 'Music') {
+                navigateTo(['Storage', 'Music']);
+            }
+        });
+    });
+    
+    // Ajouter des fonctionnalités aux boutons de navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        const icon = btn.querySelector('i');
+        if (!icon) return;
+        
+        if (icon.classList.contains('fa-arrow-left')) {
+            btn.addEventListener('click', () => {
+                // Revenir en arrière si possible
+                if (appData.currentPath.length > 1) {
+                    navigateTo(appData.currentPath.slice(0, -1));
+                }
+            });
+        } else if (icon.classList.contains('fa-arrow-right')) {
+            // Avancer dans l'historique (pas implémenté)
+            btn.addEventListener('click', () => {
+                showToast('Navigation forward not implemented', 'info');
+            });
+        } else if (icon.classList.contains('fa-arrow-up')) {
+            btn.addEventListener('click', () => {
+                // Monter d'un niveau si possible
+                if (appData.currentPath.length > 1) {
+                    navigateTo(appData.currentPath.slice(0, -1));
+                }
+            });
+        } else if (icon.classList.contains('fa-sync-alt')) {
+            btn.addEventListener('click', () => {
+                // Rafraîchir le contenu
+                updateContent();
+                showToast('Content refreshed', 'success');
+            });
+        }
+    });
+
+
+Autres codes  :
+
+// Mettre à jour le contenu en fonction du dossier actuel
+function updateContent() {
+    const currentFolder = getCurrentFolder();
+    
+    // Mettre à jour le contenu mobile
+    const mobileContent = document.getElementById('mobile-home-content');
+    if (mobileContent) {
+        mobileContent.innerHTML = '';
+        
+        // Si nous sommes à la page d'accueil (Home)
+        if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+            // Ajouter la section Storage comme accès au cloud storage
+            const storageSection = document.createElement('div');
+            storageSection.className = 'storage-section';
+            storageSection.innerHTML = `
+                <div class="storage-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Cloud Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-apps">24 apps</span> • 
+                        <span id="mobile-top-folders">5 folders</span> • 
+                        <span id="mobile-total-folders">8 folders</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            storageSection.addEventListener('click', () => {
+                navigateTo(['Home', 'Storage']);
+            });
+            mobileContent.appendChild(storageSection);
+            
+            // Ajouter la section d'accès rapide
+            const quickAccessTitle = document.createElement('div');
+            quickAccessTitle.className = 'section-title';
+            quickAccessTitle.innerHTML = `
+                <i class="fas fa-bolt"></i>
+                Accès rapide
+            `;
+            mobileContent.appendChild(quickAccessTitle);
+            
+            // Créer le conteneur de la grille pour les dossiers rapides
+            const foldersGridContainer = document.createElement('div');
+            foldersGridContainer.className = 'grid-container';
+            
+            // Ajouter les dossiers importants
+            const quickFolders = ['Desktop', 'Work', 'Entertainment'];
+            
+            quickFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    foldersGridContainer.appendChild(folderItem);
+                }
+            });
+            
+            mobileContent.appendChild(foldersGridContainer);
+            
+            // Section des éléments récemment ajoutés
+            const recentTitle = document.createElement('div');
+            recentTitle.className = 'section-title';
+            recentTitle.innerHTML = `
+                <i class="fas fa-clock-rotate-left"></i>
+                Recently Added
+            `;
+            mobileContent.appendChild(recentTitle);
+            
+            // Créer le conteneur de la grille pour les applications récentes
+            const recentAppsGrid = document.createElement('div');
+            recentAppsGrid.className = 'grid-container';
+            
+            // Ajouter quelques applications récentes
+            const recentApps = [
+                { name: 'GitHub', url: 'https://github.com', folder: 'Desktop' },
+                { name: 'YouTube', url: 'https://youtube[.]com', folder: 'Desktop' },
+                { name: 'Twitter', url: 'https://twitter[.]com', folder: 'Desktop' },
+                { name: 'Netflix', url: 'https://netflix[.]com', folder: 'Entertainment' }
+            ];
+            
+            recentApps.forEach(app => {
+                const appItem = createHomeAppItem(app.name, app.url, app.folder);
+                recentAppsGrid.appendChild(appItem);
+            });
+            
+            mobileContent.appendChild(recentAppsGrid);
+            
+            // Section des dossiers récemment modifiés
+            const recentFoldersTitle = document.createElement('div');
+            recentFoldersTitle.className = 'section-title';
+            recentFoldersTitle.innerHTML = `
+                <i class="fas fa-folder-open"></i>
+                Recently Modified Folders
+            `;
+            mobileContent.appendChild(recentFoldersTitle);
+            
+            // Créer le conteneur de la grille pour les dossiers récents
+            const recentFoldersGrid = document.createElement('div');
+            recentFoldersGrid.className = 'grid-container';
+            
+            // Ajouter quelques dossiers récents
+            const recentFolders = ['Work', 'Entertainment'];
+            
+            recentFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    recentFoldersGrid.appendChild(folderItem);
+                }
+            });
+            
+            mobileContent.appendChild(recentFoldersGrid);
+        }
+        // Si nous sommes dans un dossier normal
+        else {
+            // Ajouter le titre de la section
+            const sectionTitle = document.createElement('div');
+            sectionTitle.className = 'section-title';
+            sectionTitle.innerHTML = `
+                <i class="fas fa-folder"></i>
+                ${appData.currentPath[appData.currentPath.length - 1]}
+            `;
+            mobileContent.appendChild(sectionTitle);
+            
+            // Créer le conteneur de la grille
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+            
+            // Vérifier si le dossier a des éléments
+            const items = currentFolder.items || {};
+            const itemKeys = Object.keys(items);
+            
+            if (itemKeys.length === 0) {
+                // Afficher un message si le dossier est vide
+                const emptyFolder = document.createElement('div');
+                emptyFolder.className = 'empty-folder';
+                emptyFolder.innerHTML = `
+                    <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-dim); margin-bottom: 10px;"></i>
+                    <p style="color: var(--text-dim);">Aucun élément dans ce dossier</p>
+                `;
+                gridContainer.appendChild(emptyFolder);
+            } else {
+                // Afficher les dossiers d'abord
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'folder') {
+                        const folderItem = createFolderItem(itemName);
+                        gridContainer.appendChild(folderItem);
+                    }
+                });
+                
+                // Ensuite afficher les applications
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'app') {
+                        const appItem = createAppItem(itemName, item.url);
+                        gridContainer.appendChild(appItem);
+                    }
+                });
+            }
+            
+            mobileContent.appendChild(gridContainer);
+        }
+    }
+    
+    // Mettre à jour le contenu desktop
+    const desktopContent = document.querySelector('.desktop-content');
+    if (desktopContent) {
+        desktopContent.innerHTML = '';
+        
+        // Si nous sommes à la page d'accueil (Home)
+        if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+            // Créer la mise en page pour l'écran d'accueil du bureau
+            const desktopHomeLayout = document.createElement('div');
+            desktopHomeLayout.className = 'desktop-home-layout';
+            
+            // Section d'accès rapide
+            const quickAccessSection = document.createElement('div');
+            quickAccessSection.className = 'desktop-section';
+            
+            const quickAccessTitle = document.createElement('h2');
+            quickAccessTitle.className = 'desktop-section-title';
+            quickAccessTitle.innerHTML = `<i class="fas fa-bolt"></i> Accès rapide`;
+            quickAccessSection.appendChild(quickAccessTitle);
+            
+            const quickAccessGrid = document.createElement('div');
+            quickAccessGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter les dossiers importants
+            const quickFolders = ['Desktop', 'Work', 'Entertainment'];
+            
+            quickFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    quickAccessGrid.appendChild(folderItem);
+                }
+            });
+            
+            quickAccessSection.appendChild(quickAccessGrid);
+            desktopHomeLayout.appendChild(quickAccessSection);
+            
+            // Section des éléments récemment ajoutés
+            const recentSection = document.createElement('div');
+            recentSection.className = 'desktop-section';
+            
+            const recentTitle = document.createElement('h2');
+            recentTitle.className = 'desktop-section-title';
+            recentTitle.innerHTML = `<i class="fas fa-clock-rotate-left"></i> Recently Added`;
+            recentSection.appendChild(recentTitle);
+            
+            const recentGrid = document.createElement('div');
+            recentGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter quelques applications récentes
+            const recentApps = [
+                { name: 'GitHub', url: 'https://github[.]com', folder: 'Desktop' },
+                { name: 'YouTube', url: 'https://youtube[.]com', folder: 'Desktop' },
+                { name: 'Twitter', url: 'https://twitter[.]com', folder: 'Desktop' },
+                { name: 'Netflix', url: 'https://netflix[.]com', folder: 'Entertainment' },
+                { name: 'Spotify', url: 'https://spotify[.]com', folder: 'Entertainment' },
+                { name: 'Gmail', url: 'https://gmail[.]com', folder: 'Work' }
+            ];
+            
+            recentApps.forEach(app => {
+                const appItem = createHomeAppItem(app.name, app.url, app.folder);
+                recentGrid.appendChild(appItem);
+            });
+            
+            recentSection.appendChild(recentGrid);
+            desktopHomeLayout.appendChild(recentSection);
+            
+            // Section des dossiers récemment modifiés
+            const recentFoldersSection = document.createElement('div');
+            recentFoldersSection.className = 'desktop-section';
+            
+            const recentFoldersTitle = document.createElement('h2');
+            recentFoldersTitle.className = 'desktop-section-title';
+            recentFoldersTitle.innerHTML = `<i class="fas fa-folder-open"></i> Recently Modified Folders`;
+            recentFoldersSection.appendChild(recentFoldersTitle);
+            
+            const recentFoldersGrid = document.createElement('div');
+            recentFoldersGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter quelques dossiers récents
+            const recentFolders = ['Work', 'Entertainment'];
+            
+            recentFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    recentFoldersGrid.appendChild(folderItem);
+                }
+            });
+            
+            recentFoldersSection.appendChild(recentFoldersGrid);
+            desktopHomeLayout.appendChild(recentFoldersSection);
+            
+            desktopContent.appendChild(desktopHomeLayout);
+            
+            // Mettre à jour le compteur d'éléments dans la barre de statut
+            const statusBar = document.querySelector('.status-bar');
+            if (statusBar) {
+                statusBar.innerHTML = `<span>Home</span>`;
+            }
+        } 
+        // Si nous sommes dans un dossier normal
+        else {
+            // Créer le conteneur de la grille desktop
+            const desktopGridContainer = document.createElement('div');
+            desktopGridContainer.className = 'grid-container desktop-grid';
+            
+            // Vérifier si le dossier a des éléments
+            const items = currentFolder.items || {};
+            const itemKeys = Object.keys(items);
+            
+            if (itemKeys.length === 0) {
+                // Afficher un message si le dossier est vide
+                const emptyFolder = document.createElement('div');
+                emptyFolder.className = 'empty-folder';
+                emptyFolder.innerHTML = `
+                    <i class="fas fa-folder-open" style="font-size: 5rem; color: var(--text-dim); margin-bottom: 20px;"></i>
+                    <p style="color: var(--text-dim); font-size: 1.2rem;">Ce dossier est vide</p>
+                `;
+                desktopGridContainer.appendChild(emptyFolder);
+            } else {
+                // Afficher les dossiers d'abord
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'folder') {
+                        const folderItem = createFolderItem(itemName);
+                        desktopGridContainer.appendChild(folderItem);
+                    }
+                });
+                
+                // Ensuite afficher les applications
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'app') {
+                        const appItem = createAppItem(itemName, item.url);
+                        desktopGridContainer.appendChild(appItem);
+                    }
+                });
+            }
+            
+            desktopContent.appendChild(desktopGridContainer);
+            
+            // Mettre à jour le compteur d'éléments dans la barre de statut
+            const statusBar = document.querySelector('.status-bar');
+            if (statusBar) {
+                statusBar.innerHTML = `<span>${itemKeys.length} items</span>`;
+            }
+        }
+    }
+    
+    // NOUVELLE PARTIE: Mise à jour dynamique du sidebar
+    updateSidebar();
+}
+
+// Mettre à jour dynamiquement le sidebar
+function updateSidebar() {
+    // 1. Mettre à jour la partie Home du sidebar
+    const sidebarHome = document.querySelector('.sidebar');
+    if (sidebarHome) {
+        // Recréer les sections principales du sidebar
+        sidebarHome.innerHTML = '';
+        
+        // Création de la section Home
+        const homeSection = document.createElement('div');
+        homeSection.className = 'sidebar-section';
+        
+        // Titre Home
+        const homeTitle = document.createElement('div');
+        homeTitle.className = 'sidebar-title';
+        homeTitle.innerHTML = '<i class="fas fa-home"></i> Home';
+        homeTitle.addEventListener('click', () => {
+            navigateTo(['Home']);
+        });
+        homeSection.appendChild(homeTitle);
+        
+        // Items du Home
+        const storageItem = document.createElement('div');
+        storageItem.className = 'sidebar-item';
+        if (appData.currentPath.length > 1 && appData.currentPath[1] === 'Storage') {
+            storageItem.classList.add('active');
+        }
+        storageItem.innerHTML = '<i class="fas fa-server"></i><span>Storage</span>';
+        storageItem.addEventListener('click', () => {
+            navigateTo(['Home', 'Storage']);
+        });
+        homeSection.appendChild(storageItem);
+        
+        const recentItem = document.createElement('div');
+        recentItem.className = 'sidebar-item';
+        recentItem.innerHTML = '<i class="fas fa-clock-rotate-left"></i><span>Recent</span>';
+        recentItem.addEventListener('click', () => {
+            showToast('Recent view not implemented', 'info');
+        });
+        homeSection.appendChild(recentItem);
+        
+        const favoritesItem = document.createElement('div');
+        favoritesItem.className = 'sidebar-item';
+        favoritesItem.innerHTML = '<i class="far fa-star"></i><span>Favorites</span>';
+        favoritesItem.addEventListener('click', () => {
+            showToast('Favorites view not implemented', 'info');
+        });
+        homeSection.appendChild(favoritesItem);
+        
+        // Sous-section avec accès rapide
+        const sidebarSubsection = document.createElement('div');
+        sidebarSubsection.className = 'sidebar-subsection';
+        
+        // Accès rapide
+        const quickAccessTitle = document.createElement('div');
+        quickAccessTitle.className = 'sidebar-subtitle';
+        quickAccessTitle.innerHTML = '<i class="fas fa-folder"></i> Accès rapide';
+        sidebarSubsection.appendChild(quickAccessTitle);
+        
+        // Dossiers d'accès rapide
+        const quickFoldersContainer = document.createElement('div');
+        quickFoldersContainer.className = 'sidebar-quick-folders';
+        
+        // Créer les dossiers d'accès rapide
+        const quickFolders = ['Desktop', 'Work', 'Entertainment'];
+        quickFolders.forEach(folderName => {
+            const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+            if (storageFolder) {
+                const folderPreview = createSidebarFolderItem(folderName, storageFolder);
+                quickFoldersContainer.appendChild(folderPreview);
+            }
+        });
+        
+        sidebarSubsection.appendChild(quickFoldersContainer);
+        
+        // Recently Added section
+        const recentlyAddedTitle = document.createElement('div');
+        recentlyAddedTitle.className = 'sidebar-subtitle';
+        recentlyAddedTitle.innerHTML = '<i class="fas fa-clock-rotate-left"></i> Recently Added';
+        sidebarSubsection.appendChild(recentlyAddedTitle);
+        
+        // Apps récentes
+        const quickAppsContainer = document.createElement('div');
+        quickAppsContainer.className = 'sidebar-quick-apps';
+        
+        // Créer les apps récentes
+        const recentApps = [
+            { name: 'GitHub', url: 'https://github[.]com' },
+            { name: 'YouTube', url: 'https://youtube[.]com' },
+            { name: 'Twitter', url: 'https://twitter[.]com' },
+            { name: 'Netflix', url: 'https://netflix[.]com' }
+        ];
+        
+        recentApps.forEach(app => {
+            const appItem = createSidebarAppItem(app.name, app.url);
+            quickAppsContainer.appendChild(appItem);
+        });
+        
+        sidebarSubsection.appendChild(quickAppsContainer);
+        
+        // Recently Modified Folders section
+        const recentlyModifiedTitle = document.createElement('div');
+        recentlyModifiedTitle.className = 'sidebar-subtitle';
+        recentlyModifiedTitle.innerHTML = '<i class="fas fa-folder-open"></i> Recently Modified Folders';
+        sidebarSubsection.appendChild(recentlyModifiedTitle);
+        
+        // Dossiers récemment modifiés
+        const recentFoldersContainer = document.createElement('div');
+        recentFoldersContainer.className = 'sidebar-quick-folders';
+        
+        // Créer les dossiers récemment modifiés
+        const recentFolders = ['Work', 'Entertainment'];
+        
+        recentFolders.forEach(folderName => {
+            const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+            if (storageFolder) {
+                const folderPreview = createSidebarFolderItem(folderName, storageFolder);
+                recentFoldersContainer.appendChild(folderPreview);
+            }
+        });
+        
+        sidebarSubsection.appendChild(recentFoldersContainer);
+        
+        // Ajouter la sous-section à la section Home
+        homeSection.appendChild(sidebarSubsection);
+        
+        // Ajouter la section Home au sidebar
+        sidebarHome.appendChild(homeSection);
+        
+        // 2. Créer la section Folders
+        const foldersSection = document.createElement('div');
+        foldersSection.className = 'sidebar-section';
+        
+        const foldersTitle = document.createElement('div');
+        foldersTitle.className = 'sidebar-title';
+        foldersTitle.innerHTML = '<i class="fas fa-folder"></i> Folders';
+        foldersSection.appendChild(foldersTitle);
+        
+        // This PC item
+        const thisPcItem = document.createElement('div');
+        thisPcItem.className = 'sidebar-item';
+        thisPcItem.innerHTML = `
+            <div class="modern-pc-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 4H4C2.89543 4 2 4.89543 2 6V15C2 16.1046 2.89543 17 4 17H20C21.1046 17 22 16.1046 22 15V6C22 4.89543 21.1046 4 20 4Z" fill="url(#pc-gradient-1)"/>
+                    <path d="M8 20H16M12 17V20" stroke="#5865f2" stroke-width="2" stroke-linecap="round"/>
+                    <rect x="4" y="6" width="16" height="9" rx="1" fill="url(#pc-gradient-2)"/>
+                    <defs>
+                        <linearGradient id="pc-gradient-1" x1="2" y1="4" x2="22" y2="17" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#5865f2"/>
+                            <stop offset="1" stop-color="#7289da"/>
+                        </linearGradient>
+                        <linearGradient id="pc-gradient-2" x1="4" y1="6" x2="20" y2="15" gradientUnits="userSpaceOnUse">
+                            <stop offset="0" stop-color="#1e1e2e"/>
+                            <stop offset="1" stop-color="#2a2a3a"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <span>This PC</span>
+        `;
+        thisPcItem.addEventListener('click', () => {
+            showToast('This PC view not implemented', 'info');
+        });
+        foldersSection.appendChild(thisPcItem);
+        
+        // Folder tree
+        const folderTree = document.createElement('div');
+        folderTree.className = 'folder-tree';
+        
+        // Work folder
+        const workItem = document.createElement('div');
+        workItem.className = 'tree-item';
+        workItem.innerHTML = `
+            <div class="tree-toggle">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <i class="fas fa-folder"></i>
+            <span>Work</span>
+        `;
+        workItem.addEventListener('click', (e) => {
+            if (!e.target.closest('.tree-toggle')) {
+                navigateTo(['Home', 'Storage', 'Work']);
+            }
+        });
+        
+        // Ajouter l'événement de clic au toggle du dossier Work
+        const workToggle = workItem.querySelector('.tree-toggle');
+        if (workToggle) {
+            workToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const icon = workToggle.querySelector('i');
+                if (icon.classList.contains('fa-chevron-down')) {
+                    icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                    // Hide children
+                    const nextSibling = workItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'none';
+                    }
+                } else {
+                    icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                    // Show children
+                    const nextSibling = workItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'block';
+                    }
+                }
+            });
+        }
+        
+        folderTree.appendChild(workItem);
+        
+        // Storage folder
+        const storageTreeItem = document.createElement('div');
+        storageTreeItem.className = 'tree-item';
+        storageTreeItem.innerHTML = `
+            <div class="tree-toggle">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <i class="fas fa-folder-open"></i>
+            <span>Storage</span>
+        `;
+        storageTreeItem.addEventListener('click', (e) => {
+            if (!e.target.closest('.tree-toggle')) {
+                navigateTo(['Home', 'Storage']);
+            }
+        });
+        
+        // Ajouter l'événement de clic au toggle du dossier Storage
+        const storageToggle = storageTreeItem.querySelector('.tree-toggle');
+        if (storageToggle) {
+            storageToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const icon = storageToggle.querySelector('i');
+                if (icon.classList.contains('fa-chevron-down')) {
+                    icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                    // Hide children
+                    const nextSibling = storageTreeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'none';
+                    }
+                } else {
+                    icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                    // Show children
+                    const nextSibling = storageTreeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'block';
+                    }
+                }
+            });
+        }
+        
+        folderTree.appendChild(storageTreeItem);
+        
+        // Storage subfolders
+        const storageSubfolders = document.createElement('div');
+        storageSubfolders.className = 'folder-tree';
+        storageSubfolders.style.marginLeft = '15px';
+        
+        // Récupérer tous les dossiers dans Storage
+        const storageItems = fileSystem.Home.items.Storage.items;
+        Object.keys(storageItems).forEach(itemName => {
+            const item = storageItems[itemName];
+            if (item.type === 'folder') {
+                const subfolderItem = document.createElement('div');
+                subfolderItem.className = 'tree-item';
+                
+                // Vérifier si ce dossier a des sous-dossiers
+                const hasSubfolders = Object.values(item.items).some(subItem => subItem.type === 'folder');
+                
+                // Créer une preview des apps pour ce dossier
+                const previewIcons = getPreviewIcons(item.items);
+                
+                subfolderItem.innerHTML = `
+                    <div class="tree-toggle" ${!hasSubfolders ? 'style="visibility: hidden;"' : ''}>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="sidebar-folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-mini-preview">
+                            ${previewIcons}
+                        </div>
+                    </div>
+                    <div class="sidebar-folder-name">${itemName}</div>
+                `;
+                
+                subfolderItem.addEventListener('click', (e) => {
+                    if (!e.target.closest('.tree-toggle')) {
+                        navigateTo(['Home', 'Storage', itemName]);
+                    }
+                });
+                
+                // Ajouter l'événement de clic au toggle du sous-dossier
+                const subfoldToggle = subfolderItem.querySelector('.tree-toggle');
+                if (subfoldToggle && hasSubfolders) {
+                    subfoldToggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const icon = subfoldToggle.querySelector('i');
+                        if (icon.classList.contains('fa-chevron-down')) {
+                            icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                            // Hide children
+                            const nextSibling = subfolderItem.nextElementSibling;
+                            if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                                nextSibling.style.display = 'none';
+                            }
+                        } else {
+                            icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                            // Show children
+                            const nextSibling = subfolderItem.nextElementSibling;
+                            if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                                nextSibling.style.display = 'block';
+                            } else {
+                                // Créer un conteneur pour les sous-dossiers s'il n'existe pas encore
+                                const subSubfolders = document.createElement('div');
+                                subSubfolders.className = 'folder-tree';
+                                subSubfolders.style.marginLeft = '15px';
+                                
+                                // Ajouter les sous-dossiers
+                                Object.keys(item.items).forEach(subItemName => {
+                                    const subItem = item.items[subItemName];
+                                    if (subItem.type === 'folder') {
+                                        const subSubfolderItem = document.createElement('div');
+                                        subSubfolderItem.className = 'tree-item';
+                                        subSubfolderItem.innerHTML = `
+                                            <div class="tree-toggle" style="visibility: hidden;">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </div>
+                                            <i class="fas fa-folder"></i>
+                                            <span>${subItemName}</span>
+                                        `;
+                                        subSubfolderItem.addEventListener('click', () => {
+                                            navigateTo(['Home', 'Storage', itemName, subItemName]);
+                                        });
+                                        subSubfolders.appendChild(subSubfolderItem);
+                                    }
+                                });
+                                
+                                // Insérer après le sous-dossier actuel
+                                subfolderItem.parentNode.insertBefore(subSubfolders, subfolderItem.nextSibling);
+                            }
+                        }
+                    });
+                }
+                
+                storageSubfolders.appendChild(subfolderItem);
+            }
+        });
+        
+        folderTree.appendChild(storageSubfolders);
+        foldersSection.appendChild(folderTree);
+        
+        // Ajouter la section Folders au sidebar
+        sidebarHome.appendChild(foldersSection);
+        
+// 3. Ajouter la section Jean-Louis Likula
+const jeanLouisSection = document.createElement('div');
+jeanLouisSection.className = 'user-section spider-theme';
+jeanLouisSection.id = 'jean-louis-likula-section';
+jeanLouisSection.innerHTML = `
+    <div class="user-avatar spider-avatar">JL</div>
+    <div class="user-info">
+        <div class="user-name">Jean-Louis Likula</div>
+        <div class="user-status"><span class="spider-web-icon">🕸️</span> Spider Fan</div>
+    </div>
+    <i class="fas fa-spider"></i>
+`;
+jeanLouisSection.addEventListener('click', () => {
+    loadJeanLouisContent();
+});
+sidebarHome.appendChild(jeanLouisSection);
+
+    }
+}
+
+// Init
+// Initialisation des toggle switches
+function initializeToggleSwitches() {
+    // Toggle pour afficher/masquer les éléments masqués
+    const showMaskedToggles = document.querySelectorAll('#desktop-show-masked-toggle, #mobile-show-masked-toggle, #context-show-masked-toggle');
+    showMaskedToggles.forEach(toggle => {
+        // Initialiser l'état du toggle
+        toggle.classList.toggle('active', appData.showMaskedItems);
+        
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isShowing = toggleShowMaskedItems();
+            showMaskedToggles.forEach(t => t.classList.toggle('active', isShowing));
+            showToast(`Éléments masqués ${isShowing ? 'affichés' : 'cachés'}`, 'info');
+        });
+    });
+    
+    // Toggle pour masquer/démasquer les éléments sélectionnés
+    document.getElementById('mobile-mask-toggle')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        const isMasking = this.classList.contains('active');
+        
+        if (appData.selectedItems.length > 0) {
+            appData.selectedItems.forEach(itemName => {
+                toggleItemMask(itemName);
+            });
+            showToast(`${appData.selectedItems.length} éléments ${isMasking ? 'masqués' : 'démasqués'}`, 'success');
+            updateContent();
+        } else {
+            showToast('Veuillez sélectionner des éléments à masquer', 'info');
+        }
+    });
+    
+    document.getElementById('desktop-mask-toggle')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        const isMasking = this.classList.contains('active');
+        
+        if (appData.selectedItems.length > 0) {
+            appData.selectedItems.forEach(itemName => {
+                toggleItemMask(itemName);
+            });
+            showToast(`${appData.selectedItems.length} éléments ${isMasking ? 'masqués' : 'démasqués'}`, 'success');
+            updateContent();
+        } else {
+            showToast('Veuillez sélectionner des éléments à masquer', 'info');
+        }
+    });
+    
+    document.getElementById('selection-mask-toggle')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        this.classList.toggle('active');
+        const isMasking = this.classList.contains('active');
+        
+        if (appData.selectedItems.length > 0) {
+            appData.selectedItems.forEach(itemName => {
+                toggleItemMask(itemName);
+            });
+            showToast(`${appData.selectedItems.length} éléments ${isMasking ? 'masqués' : 'démasqués'}`, 'success');
+            updateContent();
+            toggleSelectionMode(false);
+        }
+    });
+}
+
+// Ajouter cet appel dans votre fonction d'initialisation
+function initializeMainApplication() {
+    try {
+        // Initialisation de l'application
+        // Désactiver tous les éléments actifs du sidebar
+        document.querySelectorAll('.sidebar-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // S'assurer que nous commençons avec le Home
+        appData.currentPath = ['Home'];
+        updatePaths();
+        updateContent();
+        
+        // Initialiser les toggle switches
+        initializeToggleSwitches();
+        
+        // Marquer l'application comme initialisée
+        appInitialized = true;
+        
+        // Si déjà authentifié mais pas encore transitionné, faire la transition
+        if (authenticationCompleted && !document.getElementById('app-section').classList.contains('visible')) {
+            AppTransitionManager.switchToApp();
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation de l\'application :', error);
+    }
+}
+
+        
+        // Initialiser l'application
+        initializeMainApplication();
+
+
+Les codes du début :
+
+    // ====== CODE DE L'APPLICATION PRINCIPALE ======
+    document.addEventListener('DOMContentLoaded', function() {
+    // Data model
+const appData = {
+    items: [],
+    selectedItems: [],
+    currentPath: ['Home'],
+    clipboardItems: [],
+    clipboardOperation: null, // 'copy' or 'move'
+    currentView: 'home',
+    isSelectionMode: false
+};
+
+    
+// Structure des dossiers
+const fileSystem = {
+    Home: {
+        type: 'home',
+        items: {
+            Storage: {
+                type: 'folder',
+                items: {
+                    Desktop: {
+                        type: 'folder',
+                        items: {
+                            GitHub: { type: 'app', url: 'https://github[.]com' },
+                            YouTube: { type: 'app', url: 'https://youtube[.]com' },
+                            Twitter: { type: 'app', url: 'https://twitter[.]com' }
+                        }
+                    },
+                    Work: {
+                        type: 'folder',
+                        items: {
+                            Slack: { type: 'app', url: 'https://slack[.]com' },
+                            Notion: { type: 'app', url: 'https://notion[.]so' },
+                            Gmail: { type: 'app', url: 'https://gmail[.]com' }
+                        }
+                    },
+                    Entertainment: {
+                        type: 'folder',
+                        items: {
+                            Netflix: { type: 'app', url: 'https://netflix[.]com' },
+                            Spotify: { type: 'app', url: 'https://spotify[.]com' },
+                            Twitch: { type: 'app', url: 'https://twitch[.]tv' }
+                        }
+                    },
+                    Movies: {
+                        type: 'folder',
+                        items: {}
+                    },
+                    Music: {
+                        type: 'folder',
+                        items: {}
+                    }
+                }
+            }
+        }
+    }
+};
+
+// Ajouter au système de fichiers existant
+fileSystem.Home.items['Jean-Louis Likula'] = {
+    type: 'custom',
+    description: 'Profil d\'utilisateur avec surveillance des appareils',
+    items: {} // Nous gérons le contenu dynamiquement dans loadJeanLouisContent()
+};
+
+
+    
+    // DOM Elements
+    const mobileNavItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+    const mobileContentSections = document.querySelectorAll('.mobile-content');
+    const overflowMenuBtn = document.querySelector('.overflow-menu-btn');
+    const overflowDropdown = document.querySelector('.overflow-dropdown');
+    const contextMenu = document.getElementById('context-menu');
+    const selectionToolbar = document.querySelector('.selection-toolbar');
+    const selectionCount = document.querySelector('.selection-count');
+    
+    // Modals
+    const createModal = document.getElementById('create-modal');
+    const renameModal = document.getElementById('rename-modal');
+    const addLinkModal = document.getElementById('add-link-modal');
+    const infoModal = document.getElementById('info-modal');
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    
+    // Mobile action buttons
+    const mobileSelectBtn = document.getElementById('mobile-select-btn');
+    const mobileCopyBtn = document.getElementById('mobile-copy-btn');
+    const mobileMoveBtn = document.getElementById('mobile-move-btn');
+    const mobileDeleteBtn = document.getElementById('mobile-delete-btn');
+    const mobileInfoBtn = document.getElementById('mobile-info-btn');
+    const mobileRenameBtn = document.getElementById('mobile-rename-btn');
+    
+    // Desktop action buttons
+    const desktopCreateBtn = document.getElementById('desktop-create-btn');
+    const desktopSelectBtn = document.getElementById('desktop-select-btn');
+    const desktopCopyBtn = document.getElementById('desktop-copy-btn');
+    const desktopMoveBtn = document.getElementById('desktop-move-btn');
+    const desktopPasteBtn = document.getElementById('desktop-paste-btn');
+    const desktopDeleteBtn = document.getElementById('desktop-delete-btn');
+    const desktopRenameBtn = document.getElementById('desktop-rename-btn');
+    const desktopInfoBtn = document.getElementById('desktop-info-btn');
+    const desktopExportBtn = document.getElementById('desktop-export-btn');
+    
+    // Selection tools
+    const mobileSelectAll = document.getElementById('mobile-select-all');
+    const mobileSelectionCopy = document.getElementById('mobile-selection-copy');
+    const mobileSelectionMove = document.getElementById('mobile-selection-move');
+    const mobileSelectionDelete = document.getElementById('mobile-selection-delete');
+    const mobileSelectionCancel = document.getElementById('mobile-selection-cancel');
+
+
+Mon application est une application personnelle dont je suis le seul utilisateur qui sait comment y accéder grâce à l'authentification que j'ai crée :
+
+    // ====== CODE DU LOGIN ======
+    document.addEventListener('DOMContentLoaded', function() {
+            // ===========================================
+            // DÉFINITION DES CONSTANTES ET VARIABLES PRINCIPALES
+            // ===========================================
+            
+            // Éléments DOM
+            const spider = document.getElementById('spider');
+            const loginContainer = document.getElementById('loginContainer');
+            const loginTitle = document.getElementById('loginTitle');
+            const titleSpans = loginTitle.querySelectorAll('span');
+            const usernameGroup = document.getElementById('usernameGroup');
+            const passwordGroup = document.getElementById('passwordGroup');
+            const loginButton = document.getElementById('loginButton');
+            const passwordToggle = document.getElementById('passwordToggle');
+            const password = document.getElementById('password');
+            const username = document.getElementById('username');
+            const leftPupil = document.getElementById('leftPupil');
+            const rightPupil = document.getElementById('rightPupil');
+            const spiderWeb = document.getElementById('spiderWeb');
+            const webIcons = document.getElementById('webIcons');
+            const cameraWeb = document.getElementById('cameraWeb');
+            const loadingScreen = document.getElementById('loadingScreen');
+
+....
+            // ===========================================
+            // GESTIONNAIRE DU FORMULAIRE DE CONNEXION
+            // ===========================================
+            
+            class LoginFormManager {
+    constructor(spiderManager) {
+        this.loginContainer = loginContainer;
+        this.titleSpans = titleSpans;
+        this.usernameGroup = usernameGroup;
+        this.passwordGroup = passwordGroup;
+        this.loginButton = loginButton;
+        this.passwordToggle = passwordToggle;
+        this.password = password;
+        this.username = username;
+        this.spiderManager = spiderManager;
+        
+        // État du formulaire
+        this.loginContainer.style.opacity = '0';
+        this.activeInput = null;
+        this.singleInputMode = false;
+        this.originalContainerHeight = null;
+        
+        // Configurer les gestionnaires d'événements
+        this.setupEventHandlers();
+    }
+    
+    // Configurer les gestionnaires d'événements
+    setupEventHandlers() {
+    // Suivi de la saisie dans le champ nom d'utilisateur
+    this.username.addEventListener('input', () => {
+        const rect = this.username.getBoundingClientRect();
+        const x = rect.left + this.username.value.length * 8;
+        const y = rect.top + rect.height / 2;
+        
+        this.spiderManager.trackEyes(x, y);
+    });
+    
+    // Basculement de visibilité du mot de passe
+    this.passwordToggle.addEventListener('click', () => {
+        if (this.password.type === 'password') {
+            this.password.type = 'text';
+            this.spiderManager.leftPupil.parentElement.style.height = '6px';
+            this.spiderManager.rightPupil.parentElement.style.height = '6px';
+        } else {
+            this.password.type = 'password';
+            if (document.activeElement === this.password) {
+                this.spiderManager.leftPupil.parentElement.style.height = '1px';
+                this.spiderManager.rightPupil.parentElement.style.height = '1px';
+            }
+        }
+    });
+    
+    // Focus et blur pour le champ mot de passe
+    this.password.addEventListener('focus', () => {
+        if (!this.singleInputMode) {
+            this.activateSingleInputMode(this.passwordGroup);
+        }
+        
+        if (this.password.type === 'password') {
+            this.spiderManager.leftPupil.parentElement.style.height = '1px';
+            this.spiderManager.rightPupil.parentElement.style.height = '1px';
+        } else {
+            this.spiderManager.leftPupil.parentElement.style.height = '6px';
+            this.spiderManager.rightPupil.parentElement.style.height = '6px';
+        }
+    });
+    
+    this.password.addEventListener('blur', () => {
+        this.spiderManager.leftPupil.parentElement.style.height = '';
+        this.spiderManager.rightPupil.parentElement.style.height = '';
+    });
+    
+    // Focus pour le champ nom d'utilisateur
+    this.username.addEventListener('focus', () => {
+        if (!this.singleInputMode) {
+            this.activateSingleInputMode(this.usernameGroup);
+        }
+    });
+    
+    // Gestion du bouton de connexion en mode input unique
+    this.loginButton.addEventListener('click', () => {
+        if (this.singleInputMode) {
+            // Si nous sommes en mode d'entrée unique et sur le dernier champ (mot de passe)
+            if (this.activeInput === this.passwordGroup) {
+                this.authenticate();
+            } else {
+                this.switchInputField();
+            }
+        } else {
+            // Vérifier si les champs sont vides avant d'authentifier
+            const usernameValue = this.username.value.trim();
+            const passwordValue = this.password.value.trim();
+            
+            if (!usernameValue && !passwordValue) {
+                // Si les deux champs sont vides, activer le mode d'entrée unique
+                this.activateSingleInputMode(this.usernameGroup);
+            } else {
+                // Sinon tenter l'authentification
+                this.authenticate();
+            }
+        }
+    });
+    
+    // Gestion de la touche Entrée
+    this.username.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (this.singleInputMode) {
+                this.switchInputField();
+            } else {
+                const usernameValue = this.username.value.trim();
+                if (usernameValue) {
+                    this.authenticate();
+                } else {
+                    this.activateSingleInputMode(this.usernameGroup);
+                }
+            }
+        }
+    });
+    
+    this.password.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.authenticate();
+        }
+    });
+}
+
+    
+                // NOUVELLE MÉTHODE: Authentification
+            authenticate() {
+    // Validation des entrées
+    const usernameValue = this.username.value.trim();
+    const passwordValue = this.password.value.trim();
+    
+    // Fonction pour vérifier si une chaîne est une URL valide
+    const isValidUrl = (string) => {
+        try {
+            // On utilise l'objet URL pour la validation
+            const url = new URL(string);
+            // Vérifier que le protocole est http ou https
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch (e) {
+            return false;
+        }
+    };
+    
+    // Vérifier les conditions d'authentification
+    let isAuthenticated = false;
+    
+    // Cas 1: Deux champs avec des URLs valides
+    if (usernameValue && passwordValue && isValidUrl(usernameValue) && isValidUrl(passwordValue)) {
+        isAuthenticated = true;
+    }
+    // Cas 2: Un champ avec URL valide et l'autre vide
+    else if ((usernameValue && !passwordValue && isValidUrl(usernameValue)) || 
+             (!usernameValue && passwordValue && isValidUrl(passwordValue))) {
+        isAuthenticated = true;
+    }
+    
+    // Si authentification échouée, afficher un message d'erreur subtil
+    if (!isAuthenticated) {
+        this.loginButton.classList.add('error');
+        this.loginButton.innerHTML = 'Accès refusé';
+        
+        setTimeout(() => {
+            this.loginButton.classList.remove('error');
+            this.loginButton.innerHTML = 'Se connecter';
+            this.loginButton.disabled = false;
+        }, 2000);
+        
+        return;
+    }
+    
+    // Animation de connexion en cours
+    this.loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connexion...';
+    this.loginButton.disabled = true;
+    
+    // Simuler un délai d'authentification (pour l'effet visuel)
+    setTimeout(() => {
+        // Appeler la fonction de transition
+        window.handleAuthentication();
+    }, 1000);
+}
+
+    
+    // Activer le mode input unique
+    activateSingleInputMode(activeGroup) {...}
+    
+    // Passer à l'autre champ d'input
+    switchInputField() {...}
+    
+    // Ajuster la taille du conteneur de login
+    adjustContainerSize() {...}
+    
+    // Animer l'apparition du formulaire
+    animateForm() {...}
+    
+    // Fonction pour créer l'animation de tir de toile
+    createWebShot(target, callback) {...}
+}
+
+
+            // ===========================================
+            // INITIALISATION ET DÉMARRAGE
+            // ===========================================
+            
+            // Initialiser le gestionnaire d'icônes
+            async function initializeApplication() {
+    try {
+        // Créer et initialiser le gestionnaire de sprites d'icônes
+        const iconManager = new IconSpriteManager(allIcons);
+        await iconManager.initialize();
+        
+        // Créer le gestionnaire de toile d'araignée
+        const spiderWebManager = new SpiderWebManager(iconManager);
+        spiderWebManager.initialize();
+        
+        // Créer le gestionnaire d'araignée
+        const spiderManager = new SpiderManager(spiderWebManager);
+        
+        // Créer le gestionnaire de formulaire
+        const loginFormManager = new LoginFormManager(spiderManager);
+        
+        // Créer le gestionnaire de fond
+        const backgroundManager = new BackgroundManager();
+        
+        // Créer le gestionnaire d'animation
+        const animationManager = new AnimationManager();
+        
+        // Ajouter les callbacks d'update
+        animationManager
+            .addUpdateCallback(deltaTime => spiderWebManager.update(deltaTime))
+            .addUpdateCallback(deltaTime => backgroundManager.update(deltaTime))
+            .addDrawCallback(() => backgroundManager.draw())
+            .addDrawCallback(() => spiderWebManager.draw());
+        
+        // Démarrer le gestionnaire d'animation
+        animationManager.start();
+        
+// Configurer le gestionnaire de redimensionnement
+window.addEventListener('resize', () => {
+    resizeCanvases();
+    spiderWebManager.resize();
+    backgroundManager.resize();
+    
+    // Recalculer la position de l'araignée si elle est déjà attachée
+    if (spiderManager.isAttached) {
+        const loginRect = loginContainer.getBoundingClientRect();
+        const targetTop = loginRect.top - spider.offsetHeight + 20;
+        spider.style.top = targetTop + 'px';
+        spiderManager.updateThreadPosition(); // Ajoutez cette ligne
+    }
+});
+
+
+        
+        // Configurer le suivi du curseur
+        document.addEventListener('mousemove', e => {
+            spiderManager.trackEyes(e.clientX, e.clientY);
+        });
+        
+        // Configurer le clic sur l'araignée
+        spider.addEventListener('click', () => {
+            spider.style.transform = 'translateX(-50%) scale(0.9)';
+            setTimeout(() => {
+                spider.style.transform = 'translateX(-50%) scale(1)';
+            }, 200);
+            
+            // Shoot web at camera
+            cameraWeb.style.opacity = '1';
+            setTimeout(() => {
+                cameraWeb.style.opacity = '0';
+            }, 1000);
+        });
+        
+        // Masquer l'écran de chargement
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+        }, 500);
+        
+        // Démarrer la séquence d'animation
+        setTimeout(() => {
+            spiderManager.animateEntrance(() => {
+                loginFormManager.animateForm();
+            });
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation :', error);
+        alert('Une erreur s\'est produite lors du chargement. Veuillez rafraîchir la page.');
+    }
+}
+
+            
+            // Démarrer l'application
+            initializeApplication();
+            
+        });
+
+
+NB: Je mets toujours tout mes codes Javascript dans un seul et même fichier peu importe leur complexité, comme tu le vois j'ai 2 DOM, je le gère grâce au code qui se trouve au tout début tout en haut :
+Tous les 2 DOM sont dans une fonction :
+
+        // Configuration de l'ordre de chargement et du passage de login à l'application
+(function() {
+    let loginInitialized = false;
+    let appInitialized = false;
+    let authenticationCompleted = false;
+
+    // ====== GESTIONNAIRE DE TRANSITION ======
+    const AppTransitionManager = {
+        // Méthode pour passer du login à l'application
+        switchToApp: function() {
+            const loginSection = document.getElementById('login-section');
+            const appSection = document.getElementById('app-section');
+            
+            // Ajouter la classe de transition au login
+            loginSection.classList.add('hidden');
+            
+            // Afficher la section de l'application
+            appSection.style.display = 'block';
+            
+            // Attendre que la transition soit terminée
+            setTimeout(() => {
+                // Ajouter la visibilité à l'application
+                appSection.classList.add('visible');
+                
+                // Optionnel : supprimer complètement le login du DOM après transition
+                setTimeout(() => {
+                    // Soit masquer
+                    // loginSection.style.display = 'none';
+                    
+                    // Soit supprimer si vous n'en avez plus besoin
+                    // loginSection.remove();
+                }, 600);
+            }, 50);
+        }
+    };
+
+    // Point de connexion entre les deux systèmes
+    window.handleAuthentication = function() {
+        authenticationCompleted = true;
+        AppTransitionManager.switchToApp();
+    };
+
+    // ====== CODE DU LOGIN ======
+    document.addEventListener('DOMContentLoaded', function() {....};
+
+    // ====== CODE DE L'APPLICATION PRINCIPALE ======
+    document.addEventListener('DOMContentLoaded', function() {...};
+
+})();
+
+
+NB: Ce n'est pas pas tout mon code que j'ai montré, j'ai juste montré certains parties 
+
+Et j'avais mis les "." d'extension des liens web entre [ ] mais faut pas mettre les [ ], c'était pour éviter que les liens soient lus
+
+Pour la création de la base de données, des tables dans supabase faut me donner des codes SQL 
+
+Et faut utiliser window à cause du html et des navigateurs comme :
+// Initialisation de Supabase
+const SUPABASE_URL = '...';
+const SUPABASE_KEY = '...;
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+Et faut s'assurer que chaque  fonctionnalité intéragisse avec la base de données et html
+car j'ai déjà essayé d'implémenter cette liaison ça bloque toujours l'interface (plus rien ne fonctionne), faut éviter ça
+
+Tout doit être hyper robuste, intelligente et efficace pour garantir que tout doit parfaitement bien marcher à 1000% tout en restant dans les bonnes normes faut pas forcer 
+
+Donne-moi les codes à modifier ou à ajouter avec précision, tu dois me dire quoi modifier, quoi ajouter, où le placer, faut être précis 
+
+Si tu modifies une fonction, tu dois écrire la fonction modifié au complet, dans son intégralité, sans laisser des vides à compléter
