@@ -2172,10 +2172,176 @@
 /* ╭━━━━━━━🕷️━━━━━━━╮
    CSS - VERSION 06
    ╰━━━━━━━🕷️━━━━━━━╯ */
+.mobile-header {
+    background-color: var(--card-dark);
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+}
+
+.mobile-header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.mobile-header-secondary {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    padding-top: 4px;
+}
+
+.mobile-header .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    padding: 6px;
+    cursor: pointer;
+}
+
+.mobile-header .nav-item.active {
+    color: var(--primary-color);
+    opacity: 1;
+}
+
+.mobile-header .nav-icon {
+    font-size: 1.2rem;
+}
+
+.header-create-btn {
+    padding: 6px 10px;
+    margin-right: 8px;
+}
+
+.header-nav-item {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* Masquer la barre de navigation inférieure */
+.mobile-bottom-nav {
+    display: none;
+}
+
+/* Ajuster le style lorsqu'on est dans la vue Storage */
+.storage-view .mobile-header-secondary {
+    display: none;
+}
+
+.storage-view .mobile-path {
+    display: flex;
+}
+
+/* Style par défaut pour masquer le chemin */
+.mobile-path {
+    display: none;
+}
 
 /* ╭━━━━━━━🕷️━━━━━━━╮
    CSS - VERSION 07
    ╰━━━━━━━🕷️━━━━━━━╯ */
+/* Quick Add Navigation Bar */
+.quick-add-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 16px;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background-color: rgba(30, 30, 46, 0.25);
+    transition: all 0.3s ease;
+}
+
+.quick-add-container {
+    display: flex;
+    align-items: center;
+    background-color: rgba(42, 42, 58, 0.5);
+    border-radius: 30px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quick-add-container i.fa-plus-circle {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-right: 10px;
+}
+
+.quick-add-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    font-size: 0.9rem;
+    padding: 8px 0;
+    outline: none;
+}
+
+.quick-add-input::placeholder {
+    color: rgba(240, 240, 240, 0.6);
+    font-style: italic;
+}
+
+.quick-add-icon {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    margin-left: 12px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.quick-add-icon:hover {
+    color: var(--primary-color);
+}
+
+/* Ajustement du padding pour le contenu principal */
+.mobile-content {
+    padding-bottom: 70px; /* Ajouter du padding en bas pour éviter que le contenu soit caché par la barre */
+}
+
+/* Animation quand la barre est active */
+.quick-add-nav.active {
+    background-color: rgba(30, 30, 46, 0.8);
+}
+
+.quick-add-container.active {
+    background-color: rgba(42, 42, 58, 0.9);
+    border-color: var(--primary-color);
+}
+.selection-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--card-dark);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 101; /* Mettre un z-index plus élevé que la quick-add-nav */
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+}
+
+.selection-toolbar.visible {
+    transform: translateY(0);
+}
+
+/* Cacher la barre d'ajout rapide quand la sélection est active */
+.selection-toolbar.visible ~ .quick-add-nav {
+    display: none;
+}
 
 /* ╭━━━━━━━🕷️━━━━━━━╮
    CSS - VERSION 08

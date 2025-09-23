@@ -2038,7 +2038,7 @@ function updatePaths() {
 }
 
     
-// Naviguer vers un dossier
+// Naviguer vers un dossier - version modifiée complète
 async function navigateTo(path) {
     try {
         appData.currentPath = path;
@@ -2092,6 +2092,35 @@ async function navigateTo(path) {
             updatePaths();
         }
         
+        // Ajouter ou supprimer la classe storage-view selon le chemin
+        const mobileView = document.querySelector('.mobile-view');
+        if (path.length > 1 && path.includes('Storage')) {
+            mobileView.classList.add('storage-view');
+        } else {
+            mobileView.classList.remove('storage-view');
+        }
+        
+        // Activer l'onglet Home dans le header
+        const headerNavItems = document.querySelectorAll('.header-nav-item');
+        headerNavItems.forEach(navItem => {
+            navItem.classList.remove('active');
+            if (navItem.getAttribute('data-content') === 'home') {
+                navItem.classList.add('active');
+            }
+        });
+        
+        // Afficher le contenu Home
+        const mobileContentSections = document.querySelectorAll('.mobile-content');
+        mobileContentSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        const homeContent = document.getElementById('mobile-home-content');
+        if (homeContent) {
+            homeContent.style.display = 'block';
+            appData.currentView = 'home';
+        }
+        
         updateContent();
     } catch (error) {
         console.error('Erreur lors de la navigation:', error);
@@ -2101,6 +2130,7 @@ async function navigateTo(path) {
         updateContent();
     }
 }
+
 
     
     // Récupérer le dossier actuel
@@ -4272,6 +4302,67 @@ mobileNavItems.forEach(item => {
     });
 });
 
+function initializeHeaderNavigation() {
+    // Bouton de création dans le header
+    const headerCreateBtn = document.querySelector('.header-create-btn');
+    if (headerCreateBtn) {
+        headerCreateBtn.addEventListener('click', function() {
+            createNewFolderInMobile();
+        });
+    }
+    
+    // Navigation items dans le header
+    const headerNavItems = document.querySelectorAll('.header-nav-item');
+    headerNavItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const contentId = this.getAttribute('data-content');
+            
+            // Update navigation active state
+            headerNavItems.forEach(navItem => navItem.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update content visibility
+            const mobileContentSections = document.querySelectorAll('.mobile-content');
+            mobileContentSections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Gérer l'affichage du chemin
+            const mobileView = document.querySelector('.mobile-view');
+            mobileView.classList.remove('storage-view');
+            
+            if (contentId === 'home') {
+                const homeContent = document.getElementById('mobile-home-content');
+                if (homeContent) {
+                    homeContent.style.display = 'block';
+                    appData.currentView = 'home';
+                    updateContent();
+                    
+                    // Vérifier si nous sommes dans Storage
+                    if (appData.currentPath.length > 1 && appData.currentPath.includes('Storage')) {
+                        mobileView.classList.add('storage-view');
+                    }
+                }
+            } else if (contentId === 'explore') {
+                const exploreContent = document.getElementById('mobile-explore-content');
+                if (exploreContent) {
+                    exploreContent.style.display = 'block';
+                    appData.currentView = 'explore';
+                }
+            } else if (contentId === 'export') {
+                // Logique pour l'export
+                showToast('Export functionality coming soon', 'info');
+            } else if (contentId === 'me') {
+                const meContent = document.getElementById('mobile-me-content');
+                if (meContent) {
+                    meContent.style.display = 'block';
+                    appData.currentView = 'me';
+                }
+            }
+        });
+    });
+}
+
 // Ajoutez cette variable d'état global
 appData.showMaskedItems = true; // Par défaut, afficher les éléments masqués
 
@@ -5081,7 +5172,7 @@ async function loadFoldersFromSupabase() {
 
 
 
-// Fonction pour initialiser l'application principale
+// Fonction pour initialiser l'application principale - version modifiée complète
 async function initializeMainApplication() {
     try {
         // Initialisation de l'application
@@ -5093,6 +5184,17 @@ async function initializeMainApplication() {
         // S'assurer que nous commençons avec le Home
         appData.currentPath = ['Home'];
         updatePaths();
+        
+        // Activer l'onglet Home par défaut dans le header
+        document.querySelectorAll('.header-nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-content') === 'home') {
+                item.classList.add('active');
+            }
+        });
+        
+        // Initialiser la navigation du header
+        initializeHeaderNavigation();
         
         // Charger les dossiers depuis Supabase
         if (supabaseAvailable) {
@@ -5118,10 +5220,77 @@ async function initializeMainApplication() {
 }
 
 
+
         
         // Initialiser l'application
         initializeMainApplication();
 
+// Initialisation de la barre d'ajout rapide
+function initializeQuickAddNav() {
+    const quickAddNav = document.querySelector('.quick-add-nav');
+    const quickAddContainer = document.querySelector('.quick-add-container');
+    const quickAddInput = document.querySelector('.quick-add-input');
+    const linkIcon = document.querySelector('.fa-link.quick-add-icon');
+    const noteIcon = document.querySelector('.fa-sticky-note.quick-add-icon');
+    
+    // Focus sur l'input quand on clique sur le container
+    quickAddContainer.addEventListener('click', function() {
+        quickAddInput.focus();
+    });
+    
+    // Activer l'apparence quand l'input est en focus
+    quickAddInput.addEventListener('focus', function() {
+        quickAddNav.classList.add('active');
+        quickAddContainer.classList.add('active');
+    });
+    
+    // Désactiver l'apparence quand l'input perd le focus
+    quickAddInput.addEventListener('blur', function() {
+        quickAddNav.classList.remove('active');
+        quickAddContainer.classList.remove('active');
+    });
+    
+    // Traiter le lien ou la note quand on appuie sur Entrée
+    quickAddInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && quickAddInput.value.trim() !== '') {
+            const inputValue = quickAddInput.value.trim();
+            
+            // Vider l'input après traitement
+            quickAddInput.value = '';
+            
+            // Afficher un toast pour confirmer
+            showToast('Contenu ajouté avec succès', 'success');
+        }
+    });
+    
+    // Actions spécifiques quand on clique sur les icônes
+    linkIcon.addEventListener('click', function() {
+        if (quickAddInput.value.trim() !== '') {
+            // Traiter comme un lien
+            const inputValue = quickAddInput.value.trim();
+            quickAddInput.value = '';
+            showToast('Lien ajouté avec succès', 'success');
+        } else {
+            quickAddInput.focus();
+            quickAddInput.setAttribute('placeholder', 'Collez un lien pour l\'ajouter à la collection...');
+        }
+    });
+    
+    noteIcon.addEventListener('click', function() {
+        if (quickAddInput.value.trim() !== '') {
+            // Traiter comme une note
+            const inputValue = quickAddInput.value.trim();
+            quickAddInput.value = '';
+            showToast('Note créée avec succès', 'success');
+        } else {
+            quickAddInput.focus();
+            quickAddInput.setAttribute('placeholder', 'Écrivez votre note ici...');
+        }
+    });
+}
+
+// Appeler l'initialisation de la barre d'ajout rapide
+initializeQuickAddNav();
 
 });
 })();

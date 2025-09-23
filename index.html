@@ -80,61 +80,80 @@
 <!-- ───🕷 Mobile View ───🕸 -->
     <div class="mobile-view">
         <div class="mobile-header">
-            <div class="logo">
-                <i class="fas fa-link"></i>
-                JL-Link Manager
+    <div class="mobile-header-main">
+        <div class="logo">
+            <i class="fas fa-link"></i>
+            JL-Link Manager
+        </div>
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search links and folders...">
+        </div>
+        <div class="nav-item header-create-btn" data-content="create">
+            <i class="fas fa-plus nav-icon"></i>
+        </div>
+        <div class="overflow-menu">
+            <button class="overflow-menu-btn">
+                <i class="fas fa-ellipsis-vertical"></i>
+            </button>
+            <div class="overflow-dropdown">
+                <div class="dropdown-item" id="mobile-select-btn">
+                    <i class="far fa-check-square"></i>
+                    <span>Select</span>
+                </div>
+                <div class="dropdown-item" id="mobile-copy-btn">
+                    <i class="far fa-copy"></i>
+                    <span>Copy</span>
+                </div>
+                <div class="dropdown-item" id="mobile-move-btn">
+                    <i class="fas fa-file-export"></i>
+                    <span>Move</span>
+                </div>
+                <div class="dropdown-item" id="mobile-delete-btn">
+                    <i class="far fa-eye-slash"></i>
+                    <span>Masquer</span>
+                    <div class="toggle-switch" id="mobile-mask-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item" id="mobile-show-masked-btn">
+                    <i class="fas fa-eye"></i>
+                    <span>Afficher masqués</span>
+                    <div class="toggle-switch" id="mobile-show-masked-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item" id="mobile-info-btn">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Info</span>
+                </div>
+                <div class="dropdown-item" id="mobile-rename-btn">
+                    <i class="far fa-edit"></i>
+                    <span>Rename</span>
+                </div>
             </div>
-            <div class="search-container">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search links and folders...">
-            </div>
-            <div class="overflow-menu">
-                <button class="overflow-menu-btn">
-                    <i class="fas fa-ellipsis-vertical"></i>
-                </button>
-                <div class="overflow-dropdown">
-                    <div class="dropdown-item" id="mobile-select-btn">
-                        <i class="far fa-check-square"></i>
-                        <span>Select</span>
-                    </div>
-                    <div class="dropdown-item" id="mobile-copy-btn">
-                        <i class="far fa-copy"></i>
-                        <span>Copy</span>
-                    </div>
-                    <div class="dropdown-item" id="mobile-move-btn">
-                        <i class="fas fa-file-export"></i>
-                        <span>Move</span>
-                    </div>
-<div class="dropdown-item" id="mobile-delete-btn">
-    <i class="far fa-eye-slash"></i>
-    <span>Masquer</span>
-    <div class="toggle-switch" id="mobile-mask-toggle">
-        <div class="toggle-track">
-            <div class="toggle-knob"></div>
         </div>
     </div>
-</div>
-<div class="dropdown-item" id="mobile-show-masked-btn">
-    <i class="fas fa-eye"></i>
-    <span>Afficher masqués</span>
-    <div class="toggle-switch" id="mobile-show-masked-toggle">
-        <div class="toggle-track">
-            <div class="toggle-knob"></div>
+    <div class="mobile-header-secondary">
+        <div class="nav-item header-nav-item" data-content="home">
+            <i class="fas fa-home nav-icon"></i>
+        </div>
+        <div class="nav-item header-nav-item" data-content="explore">
+            <i class="fas fa-compass nav-icon"></i>
+        </div>
+        <div class="nav-item header-nav-item" data-content="export">
+            <i class="fas fa-file-export nav-icon"></i>
+        </div>
+        <div class="nav-item header-nav-item" data-content="me">
+            <i class="fas fa-user nav-icon"></i>
         </div>
     </div>
 </div>
 
-                    <div class="dropdown-item" id="mobile-info-btn">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Info</span>
-                    </div>
-                    <div class="dropdown-item" id="mobile-rename-btn">
-                        <i class="far fa-edit"></i>
-                        <span>Rename</span>
-                    </div>
-                </div>
-            </div>
-        </div>
         
         <div class="mobile-path">
             <i class="fas fa-home"></i>
@@ -665,6 +684,16 @@
                 </button>
             </div>
         </div>
+    
+    <div class="quick-add-nav">
+    <div class="quick-add-container">
+        <i class="fas fa-plus-circle"></i>
+        <input type="text" placeholder="Coller un lien ou du texte pour créer une note..." class="quick-add-input">
+        <i class="fas fa-link quick-add-icon"></i>
+        <i class="fas fa-sticky-note quick-add-icon"></i>
+    </div>
+</div>
+
     </div>
     
 <!-- ───🕷 Desktop View ───🕸 -->
