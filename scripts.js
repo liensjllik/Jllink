@@ -1813,6 +1813,85 @@ fileSystem.Home.items['Jean-Louis Likula'] = {
     items: {} // Nous gérons le contenu dynamiquement dans loadJeanLouisContent()
 };
 
+// Ajouter le TasksStorage au système de fichiers
+fileSystem.Home.items['TasksStorage'] = {
+    type: 'folder',
+    items: {
+        '2025': {
+            type: 'folder',
+            items: {
+                '09': {
+                    type: 'folder',
+                    items: {
+                        '27': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '28': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '29': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '30': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                },
+                '10': {
+                    type: 'folder',
+                    items: {
+                        '01': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '2024': {
+            type: 'folder',
+            items: {
+                '12': {
+                    type: 'folder',
+                    items: {
+                        '31': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
 
     
     // DOM Elements
@@ -2094,7 +2173,7 @@ async function navigateTo(path) {
         
         // Ajouter ou supprimer la classe storage-view selon le chemin
         const mobileView = document.querySelector('.mobile-view');
-        if (path.length > 1 && path.includes('Storage')) {
+        if (path.length > 1 && (path.includes('Storage') || path.includes('TasksStorage'))) {
             mobileView.classList.add('storage-view');
         } else {
             mobileView.classList.remove('storage-view');
@@ -2130,6 +2209,7 @@ async function navigateTo(path) {
         updateContent();
     }
 }
+
 
 
     
@@ -2174,6 +2254,28 @@ function updateContent() {
                 navigateTo(['Home', 'Storage']);
             });
             mobileContent.appendChild(storageSection);
+            
+            // Ajouter la section TasksStorage comme deuxième storage
+            const tasksStorageSection = document.createElement('div');
+            tasksStorageSection.className = 'storage-section';
+            tasksStorageSection.innerHTML = `
+                <div class="storage-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Tasks Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-tasks">15 tâches</span> • 
+                        <span id="mobile-years">2 années</span> • 
+                        <span id="mobile-days">6 jours</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            tasksStorageSection.addEventListener('click', () => {
+                navigateTo(['Home', 'TasksStorage']);
+            });
+            mobileContent.appendChild(tasksStorageSection);
             
             // Ajouter la section d'accès rapide
             const quickAccessTitle = document.createElement('div');
@@ -2294,13 +2396,16 @@ function updateContent() {
                     }
                 });
                 
-                // Ensuite afficher les applications
+                // Ensuite afficher les applications ou tâches
                 itemKeys.forEach(itemName => {
                     const item = items[itemName];
                     
                     if (item.type === 'app') {
                         const appItem = createAppItem(itemName, item.url);
                         gridContainer.appendChild(appItem);
+                    } else if (item.type === 'task') {
+                        const taskItem = createTaskItem(itemName, item.emoji);
+                        gridContainer.appendChild(taskItem);
                     }
                 });
             }
@@ -2440,13 +2545,16 @@ function updateContent() {
                     }
                 });
                 
-                // Ensuite afficher les applications
+                // Ensuite afficher les applications ou tâches
                 itemKeys.forEach(itemName => {
                     const item = items[itemName];
                     
                     if (item.type === 'app') {
                         const appItem = createAppItem(itemName, item.url);
                         desktopGridContainer.appendChild(appItem);
+                    } else if (item.type === 'task') {
+                        const taskItem = createTaskItem(itemName, item.emoji);
+                        desktopGridContainer.appendChild(taskItem);
                     }
                 });
             }
@@ -2464,8 +2572,9 @@ function updateContent() {
     // NOUVELLE PARTIE: Mise à jour dynamique du sidebar
     updateSidebar();
 
-  refreshDataFromSupabase();
+    refreshDataFromSupabase();
 }
+
 
 // Mettre à jour dynamiquement le sidebar
 function updateSidebar() {
@@ -2499,6 +2608,18 @@ function updateSidebar() {
             navigateTo(['Home', 'Storage']);
         });
         homeSection.appendChild(storageItem);
+        
+        // Ajouter l'élément TasksStorage
+        const tasksStorageItem = document.createElement('div');
+        tasksStorageItem.className = 'sidebar-item';
+        if (appData.currentPath.length > 1 && appData.currentPath[1] === 'TasksStorage') {
+            tasksStorageItem.classList.add('active');
+        }
+        tasksStorageItem.innerHTML = '<i class="fas fa-tasks"></i><span>Tasks Storage</span>';
+        tasksStorageItem.addEventListener('click', () => {
+            navigateTo(['Home', 'TasksStorage']);
+        });
+        homeSection.appendChild(tasksStorageItem);
         
         const recentItem = document.createElement('div');
         recentItem.className = 'sidebar-item';
@@ -2816,30 +2937,122 @@ function updateSidebar() {
         });
         
         folderTree.appendChild(storageSubfolders);
+        
+        // Ajouter l'élément TasksStorage au folder tree
+        const tasksStorageTreeItem = document.createElement('div');
+        tasksStorageTreeItem.className = 'tree-item';
+        tasksStorageTreeItem.innerHTML = `
+            <div class="tree-toggle">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <i class="fas fa-tasks"></i>
+            <span>Tasks Storage</span>
+        `;
+        tasksStorageTreeItem.addEventListener('click', (e) => {
+            if (!e.target.closest('.tree-toggle')) {
+                navigateTo(['Home', 'TasksStorage']);
+            }
+        });
+        
+        // Ajouter l'événement de clic au toggle du dossier TasksStorage
+        const tasksStorageToggle = tasksStorageTreeItem.querySelector('.tree-toggle');
+        if (tasksStorageToggle) {
+            tasksStorageToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const icon = tasksStorageToggle.querySelector('i');
+                if (icon.classList.contains('fa-chevron-down')) {
+                    icon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                    // Hide children
+                    const nextSibling = tasksStorageTreeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'none';
+                    }
+                } else {
+                    icon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                    // Show children
+                    const nextSibling = tasksStorageTreeItem.nextElementSibling;
+                    if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                        nextSibling.style.display = 'block';
+                    } else {
+                        // Créer un conteneur pour les années
+                        const yearsFolder = document.createElement('div');
+                        yearsFolder.className = 'folder-tree';
+                        yearsFolder.style.marginLeft = '15px';
+                        
+                        // Ajouter les dossiers d'années
+                        const tasksStorageItems = fileSystem.Home.items.TasksStorage.items;
+                        Object.keys(tasksStorageItems).forEach(yearName => {
+                            const yearItem = document.createElement('div');
+                            yearItem.className = 'tree-item';
+                            yearItem.innerHTML = `
+                                <div class="tree-toggle">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                                <i class="fas fa-calendar-year"></i>
+                                <span>${yearName}</span>
+                            `;
+                            yearItem.addEventListener('click', (e) => {
+                                if (!e.target.closest('.tree-toggle')) {
+                                    navigateTo(['Home', 'TasksStorage', yearName]);
+                                }
+                            });
+                            
+                            // Ajouter l'événement de clic au toggle de l'année
+                            const yearToggle = yearItem.querySelector('.tree-toggle');
+                            if (yearToggle) {
+                                yearToggle.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const yearIcon = yearToggle.querySelector('i');
+                                    if (yearIcon.classList.contains('fa-chevron-down')) {
+                                        yearIcon.classList.replace('fa-chevron-down', 'fa-chevron-right');
+                                        // Hide children
+                                        const nextSibling = yearItem.nextElementSibling;
+                                        if (nextSibling && nextSibling.classList.contains('folder-tree')) {
+                                            nextSibling.style.display = 'none';
+                                        }
+                                    } else {
+                                        yearIcon.classList.replace('fa-chevron-right', 'fa-chevron-down');
+                                        // Show children - mais ne pas les créer ici pour éviter la complexité
+                                        showToast(`Cliquez sur ${yearName} pour voir ses mois`, 'info');
+                                    }
+                                });
+                            }
+                            
+                            yearsFolder.appendChild(yearItem);
+                        });
+                        
+                        // Insérer après le TasksStorage
+                        tasksStorageTreeItem.parentNode.insertBefore(yearsFolder, tasksStorageTreeItem.nextSibling);
+                    }
+                }
+            });
+        }
+        
+        folderTree.appendChild(tasksStorageTreeItem);
         foldersSection.appendChild(folderTree);
         
         // Ajouter la section Folders au sidebar
         sidebarHome.appendChild(foldersSection);
         
-// 3. Ajouter la section Jean-Louis Likula
-const jeanLouisSection = document.createElement('div');
-jeanLouisSection.className = 'user-section spider-theme';
-jeanLouisSection.id = 'jean-louis-likula-section';
-jeanLouisSection.innerHTML = `
-    <div class="user-avatar spider-avatar">JL</div>
-    <div class="user-info">
-        <div class="user-name">Jean-Louis Likula</div>
-        <div class="user-status"><span class="spider-web-icon">🕸️</span> Spider Fan</div>
-    </div>
-    <i class="fas fa-spider"></i>
-`;
-jeanLouisSection.addEventListener('click', () => {
-    loadJeanLouisContent();
-});
-sidebarHome.appendChild(jeanLouisSection);
-
+        // 3. Ajouter la section Jean-Louis Likula
+        const jeanLouisSection = document.createElement('div');
+        jeanLouisSection.className = 'user-section spider-theme';
+        jeanLouisSection.id = 'jean-louis-likula-section';
+        jeanLouisSection.innerHTML = `
+            <div class="user-avatar spider-avatar">JL</div>
+            <div class="user-info">
+                <div class="user-name">Jean-Louis Likula</div>
+                <div class="user-status"><span class="spider-web-icon">🕸️</span> Spider Fan</div>
+            </div>
+            <i class="fas fa-spider"></i>
+        `;
+        jeanLouisSection.addEventListener('click', () => {
+            loadJeanLouisContent();
+        });
+        sidebarHome.appendChild(jeanLouisSection);
     }
 }
+
 
 // Charger le contenu de Jean-Louis Likula
 function loadJeanLouisContent() {
@@ -3216,6 +3429,22 @@ function getPreviewIcons(items) {
     return previewIcons;
 }
 
+// Obtenir les icônes de preview pour un dossier de tâches
+function getTaskPreviewIcons(items) {
+    let previewIcons = '';
+    const taskKeys = Object.keys(items).filter(key => items[key].type === 'task').slice(0, 3);
+    
+    if (taskKeys.length === 0) {
+        return '';
+    }
+    
+    taskKeys.forEach(taskName => {
+        previewIcons += `<div class="mini-emoji">${items[taskName].emoji}</div>`;
+    });
+    
+    return previewIcons;
+}
+
     
 // Créer un élément dossier
 function createFolderItem(name) {
@@ -3226,15 +3455,29 @@ function createFolderItem(name) {
     }
     folderItem.setAttribute('data-name', name);
     
-    // Récupérer les aperçus des applications dans le dossier
+    // Récupérer les aperçus des éléments dans le dossier
     let previewIcons = '';
     const folderItems = getCurrentFolder().items[name].items;
-    const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
     
-    appKeys.forEach(appName => {
-        const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
-        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
-    });
+    // Vérifier si nous sommes dans le TasksStorage
+    const isTasksFolder = appData.currentPath.includes('TasksStorage');
+    
+    if (isTasksFolder) {
+        // Afficher des aperçus d'emojis pour les tâches
+        const taskKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'task').slice(0, 3);
+        
+        taskKeys.forEach(taskName => {
+            previewIcons += `<div class="preview-emoji">${folderItems[taskName].emoji}</div>`;
+        });
+    } else {
+        // Afficher des aperçus d'applications normales
+        const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
+        
+        appKeys.forEach(appName => {
+            const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
+            previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
+        });
+    }
     
     folderItem.innerHTML = `
         <div class="folder-icon">
@@ -3290,6 +3533,7 @@ function createFolderItem(name) {
     
     return folderItem;
 }
+
 
 
 // Nouvelle fonction pour rendre un nom d'élément éditable
@@ -3827,6 +4071,53 @@ function createAppItem(name, url) {
     });
     
     return appItem;
+}
+
+// Créer un élément tâche
+function createTaskItem(name, emoji) {
+    const taskItem = document.createElement('div');
+    taskItem.className = 'app-item task-item';
+    taskItem.setAttribute('data-name', name);
+    
+    taskItem.innerHTML = `
+        <div class="task-icon">${emoji}</div>
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    taskItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de la tâche, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Rien ne se passe pour l'instant quand on clique sur une tâche
+            showToast(`Tâche: ${name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    taskItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, taskItem);
+    });
+    
+    return taskItem;
 }
 
     
