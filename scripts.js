@@ -2212,6 +2212,7 @@ async function navigateTo(path) {
 
 
 
+
     
     // Récupérer le dossier actuel
     function getCurrentFolder() {
@@ -4630,7 +4631,7 @@ function initializeHeaderNavigation() {
                     updateContent();
                     
                     // Vérifier si nous sommes dans Storage
-                    if (appData.currentPath.length > 1 && appData.currentPath.includes('Storage')) {
+                    if (appData.currentPath.length > 1 && (appData.currentPath.includes('Storage') || appData.currentPath.includes('TasksStorage'))) {
                         mobileView.classList.add('storage-view');
                     }
                 }
@@ -4652,7 +4653,29 @@ function initializeHeaderNavigation() {
             }
         });
     });
+    
+    // Gestion du menu overflow
+    const overflowMenuBtn = document.querySelector('.overflow-menu-btn');
+    const overflowDropdown = document.querySelector('.overflow-dropdown');
+    
+    if (overflowMenuBtn && overflowDropdown) {
+        overflowMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            overflowDropdown.classList.toggle('show');
+        });
+        
+        // Fermer le dropdown quand on clique ailleurs
+        document.addEventListener('click', function() {
+            overflowDropdown.classList.remove('show');
+        });
+        
+        // Empêcher la fermeture quand on clique à l'intérieur du dropdown
+        overflowDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
 }
+
 
 // Ajoutez cette variable d'état global
 appData.showMaskedItems = true; // Par défaut, afficher les éléments masqués
@@ -5461,6 +5484,129 @@ async function loadFoldersFromSupabase() {
     }
 }
 
+// Fonction pour charger les tâches depuis Supabase
+async function loadTasksFromSupabase() {
+    if (!supabaseAvailable) {
+        console.log('Supabase n\'est pas disponible, chargement des tâches ignoré');
+        return;
+    }
+    
+    try {
+        showToast('Chargement des tâches...', 'info');
+        
+        // Si le TasksStorage n'existe pas, le créer
+        if (!fileSystem.Home.items.TasksStorage) {
+            fileSystem.Home.items.TasksStorage = {
+                type: 'folder',
+                items: {}
+            };
+        }
+        
+        // Charger tous les dossiers de tâches (années)
+        const { data: yearFolders, error: yearFoldersError } = await supabase
+            .from('task_folders')
+            .select('*')
+            .eq('type', 'year')
+            .order('name', { ascending: false });
+            
+        if (yearFoldersError) {
+            console.error('Erreur lors du chargement des années:', yearFoldersError);
+            showToast('Erreur lors du chargement des tâches', 'error');
+            return;
+        }
+        
+        // Traiter chaque année
+        for (const yearFolder of yearFolders) {
+            // Créer le dossier année s'il n'existe pas
+            if (!fileSystem.Home.items.TasksStorage.items[yearFolder.name]) {
+                fileSystem.Home.items.TasksStorage.items[yearFolder.name] = {
+                    type: 'folder',
+                    items: {},
+                    _id: yearFolder.id
+                };
+            }
+            
+            // Charger les mois pour cette année
+            const { data: monthFolders, error: monthFoldersError } = await supabase
+                .from('task_folders')
+                .select('*')
+                .eq('type', 'month')
+                .eq('parent_id', yearFolder.id)
+                .order('name', { ascending: true });
+                
+            if (monthFoldersError) {
+                console.error(`Erreur lors du chargement des mois pour l'année ${yearFolder.name}:`, monthFoldersError);
+                continue;
+            }
+            
+            // Traiter chaque mois
+            for (const monthFolder of monthFolders) {
+                // Créer le dossier mois s'il n'existe pas
+                if (!fileSystem.Home.items.TasksStorage.items[yearFolder.name].items[monthFolder.name]) {
+                    fileSystem.Home.items.TasksStorage.items[yearFolder.name].items[monthFolder.name] = {
+                        type: 'folder',
+                        items: {},
+                        _id: monthFolder.id
+                    };
+                }
+                
+                // Charger les jours pour ce mois
+                const { data: dayFolders, error: dayFoldersError } = await supabase
+                    .from('task_folders')
+                    .select('*')
+                    .eq('type', 'day')
+                    .eq('parent_id', monthFolder.id)
+                    .order('name', { ascending: true });
+                    
+                if (dayFoldersError) {
+                    console.error(`Erreur lors du chargement des jours pour le mois ${monthFolder.name}:`, dayFoldersError);
+                    continue;
+                }
+                
+                // Traiter chaque jour
+                for (const dayFolder of dayFolders) {
+                    // Créer le dossier jour s'il n'existe pas
+                    if (!fileSystem.Home.items.TasksStorage.items[yearFolder.name].items[monthFolder.name].items[dayFolder.name]) {
+                        fileSystem.Home.items.TasksStorage.items[yearFolder.name].items[monthFolder.name].items[dayFolder.name] = {
+                            type: 'folder',
+                            items: {},
+                            _id: dayFolder.id
+                        };
+                    }
+                    
+                    // Charger les tâches pour ce jour
+                    const { data: tasks, error: tasksError } = await supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('day_folder_id', dayFolder.id);
+                        
+                    if (tasksError) {
+                        console.error(`Erreur lors du chargement des tâches pour le jour ${dayFolder.name}:`, tasksError);
+                        continue;
+                    }
+                    
+                    // Ajouter les tâches au dossier jour
+                    tasks.forEach(task => {
+                        fileSystem.Home.items.TasksStorage.items[yearFolder.name].items[monthFolder.name].items[dayFolder.name].items[task.name] = {
+                            type: 'task',
+                            emoji: task.emoji,
+                            _id: task.id
+                        };
+                    });
+                }
+            }
+        }
+        
+        // Mettre à jour l'interface
+        updateContent();
+        showToast('Tâches chargées avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Exception lors du chargement des tâches:', error);
+        showToast('Erreur lors du chargement des tâches', 'error');
+    }
+}
+
 
 
 // Fonction pour initialiser l'application principale - version modifiée complète
@@ -5490,6 +5636,9 @@ async function initializeMainApplication() {
         // Charger les dossiers depuis Supabase
         if (supabaseAvailable) {
             await loadFoldersFromSupabase();
+            
+            // Charger les tâches depuis Supabase
+            await loadTasksFromSupabase();
         }
         
         // Mettre à jour l'interface
@@ -5497,6 +5646,13 @@ async function initializeMainApplication() {
         
         // Initialiser les toggle switches
         initializeToggleSwitches();
+        
+        // Configurer le rechargement périodique des tâches
+        setInterval(async () => {
+            if (supabaseAvailable) {
+                await loadTasksFromSupabase();
+            }
+        }, 5 * 60 * 1000); // Recharger toutes les 5 minutes
         
         // Marquer l'application comme initialisée
         appInitialized = true;
@@ -5509,6 +5665,7 @@ async function initializeMainApplication() {
         console.error('Erreur lors de l\'initialisation de l\'application :', error);
     }
 }
+
 
 
 

@@ -2174,26 +2174,17 @@
    ╰━━━━━━━🕷️━━━━━━━╯ */
 .mobile-header {
     background-color: var(--card-dark);
-    padding: 8px 16px;
-    display: flex;
-    flex-direction: column;
+    padding: 14px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     z-index: 10;
+    position: sticky;
+    top: 0;
 }
 
 .mobile-header-main {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-}
-
-.mobile-header-secondary {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    padding-top: 4px;
+    gap: 8px;
 }
 
 .mobile-header .nav-item {
@@ -2201,13 +2192,16 @@
     align-items: center;
     justify-content: center;
     opacity: 0.7;
-    padding: 6px;
+    padding: 8px;
+    border-radius: 50%;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .mobile-header .nav-item.active {
     color: var(--primary-color);
     opacity: 1;
+    background-color: rgba(114, 137, 218, 0.1);
 }
 
 .mobile-header .nav-icon {
@@ -2215,15 +2209,66 @@
 }
 
 .header-create-btn {
-    padding: 6px 10px;
-    margin-right: 8px;
+    padding: 8px;
+    margin-left: 4px;
 }
 
 .header-nav-item {
-    flex: 1;
     display: flex;
     justify-content: center;
 }
+
+.search-container {
+    flex: 1;
+    margin: 0 4px;
+}
+
+.search-container input {
+    width: 100%;
+    padding: 10px 12px 10px 36px;
+    border-radius: 20px;
+    border: none;
+    background-color: rgba(255,255,255,0.1);
+    color: var(--text-light);
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.search-container input:focus {
+    background-color: rgba(255,255,255,0.15);
+    outline: none;
+}
+
+.search-container i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+}
+
+.overflow-menu {
+    position: relative;
+}
+
+.overflow-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.overflow-menu-btn:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
 
 /* Masquer la barre de navigation inférieure */
 .mobile-bottom-nav {
@@ -2242,6 +2287,69 @@
 /* Style par défaut pour masquer le chemin */
 .mobile-path {
     display: none;
+}
+/* Effet d'ondulation lors du clic sur les boutons du header */
+.mobile-header .nav-item:active,
+.overflow-menu-btn:active {
+    background-color: rgba(255,255,255,0.2);
+    transform: scale(0.95);
+}
+
+/* Style amélioré pour le menu déroulant */
+.overflow-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background-color: var(--card-dark);
+    border-radius: var(--border-radius);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+    z-index: 20;
+    min-width: 220px;
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+}
+
+.overflow-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    color: var(--text-light);
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(255,255,255,0.05);
+}
+
+.dropdown-item i {
+    margin-right: 12px;
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Ajustement pour le path quand il est visible */
+.storage-view .mobile-path {
+    display: flex;
+    padding: 10px 16px;
+    background-color: var(--background-dark);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+}
+
+.storage-view .mobile-path::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge */
 }
 
 /* ╭━━━━━━━🕷️━━━━━━━╮

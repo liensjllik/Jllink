@@ -1,0 +1,2981 @@
+Poe : "ladybugjllik@gmail.com"
+
+chatgpt titre : "Erreur syntaxe postegreSQL"
+compte :"ladybugjllik@gmail.com"
+
+Dans mon code j'ai 2 Storage :
+
+- le premier : pour les applications 
+- le second : pour les tâches 
+
+Ici on va parler du second, le Storage pour les tasks (tâches) :
+Je l'ai pensé comme un calendrier car il aura des fonctionnalités spécifiques 
+- les premiers dossiers qu'on trouve dans ce Storage : ce sont les années 
+- les sous-dossiers de ces dossiers sont des mois 
+- les sous-dossiers des mois sont des jours 
+- et dans les jours on trouve des tâches comme éléments , il n'y que 3 tâches : bonjour, bon après-midi et bonsoir (NB: Ces tâches seront toujours créer chaque jour, dans chauqe dossier du jour) 
+
+C'est pour montrer qu'on souhait implémenter un système automatique, qui consistera à créer des dossiers et à ajouter des tâches dans le temps, selon la calendrier 
+
+Si par exemple aujourd'hui on est le 01/10/2025
+C'est dans dire que dans le dossier 2025 (si ça avait déjà été créer), vu que le 1er jour du mois d'octobre (01/10) donc le sous-dossier 10 sera créer/ajouter dans le dossier 2025 et dans le dossier du mois (10) le sous-dossier 01 sera ajouté/créer et dans le dossier du jour on aura les éléments tâches.
+
+Ces dossiers seront créer automatiquement, sans mon intervention, le but est de maintenir la base de données active, toujours en activité pour éviter que cette dernière soit mise en "pause" en cas d'une longue absence de ma part.
+
+C'est pourquoi j'ai pensé à cette solution 
+
+J'utilise supabase comme base de données, 
+Vu que c'est ultra complet (integrations, auth,...)
+Je pense que tu pourras réussir à implémenter cette fonctionnalité d'automatisation de création de dossiers selon la calendrier 
+
+J'ai pensé à des fonctionnalités comme cron jobs , l'intégration pg cron ... Bref des services
+d'automatisation de tâches.
+
+Mon application est en HMTL, CSS, JavaScript, technologies Javascript (api, bibliothèques, autres... totalement gratuit à vie) et j'utilise supabase comme base de données.
+
+D'abord j'aimerais faire le test avec une durée beaucoup plus courte pour s'assurer que ça va marché :
+- Genre 5 min égale à 1 jour , au lieu d'attendre jusqu'à 00h
+
+Donc faut me donner les codes pour le test , ensuite faut me donner le code pour remplacer le code test par celui qui utilise la réelle évolution du calendrier
+
+NB: Pas besoin des boutons, pas besoins des méthodes manuelles, pas besoin de garder l'application ouverte, tout doit se faire automatiquement  depuis la base de données, c'est en ouvrant mon application que je dois constaté que les dossiers ont été créer et ajouter sans besoin de mon intervation,
+oui c'est logique, car tout vient de la base de données, l'application est juste là pour donner la forme, l'apparence de se trouve déjà dans la base de données 
+
+NB: Je n'ai pas besoin d'accéder à mon application pour déclencher quoi que ce soit , tout s'ajouter depuis la base de données même le test, c'est pourquoi j'ai dit pas des méthodes manuelles même pour le test car on soit voir comment l'application va se débrouiller au quotidient sans mon intervation (accès à l'application, clic, boutons,...etc)
+Ça doit être automatique
+
+Si le test fonctionne, faut me dire comment l'arrêter, mettre fin, ou le remplacer par les instructions pour évolution d'un véritable calendrier
+
+NB: Je n'utilise jamais d'ordinateur, 
+je code sur une application mobile "Acode Editor" et je mets de fois mon code sur Github, 
+je n'ai pas encore déployer mon application, je teste tout sur "Acode Editor"
+C'était juste une petit information, mais je crois que tout va se passer dans supabase 
+
+Voici comment j'avais créé ma base de données :
+
+-- Table pour stocker les dossiers
+CREATE TABLE folders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  parent_path TEXT[] NOT NULL,
+  is_masked BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table pour stocker les applications dans les dossiers
+CREATE TABLE apps (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(), 
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
+  is_masked BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Fonction pour mettre à jour le timestamp automatiquement
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers pour mettre à jour le timestamp
+CREATE TRIGGER update_folders_timestamp
+BEFORE UPDATE ON folders
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+CREATE TRIGGER update_apps_timestamp
+BEFORE UPDATE ON apps
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+NB: Je crois que pour le storage des tasks, il serait mieux d'avoir ses propres tables à part, pour éviter de trop surchager le storage des applications, comme ça tout sera organiser
+
+Voici certains de mes codes :
+certains Html :
+<!-- ───🕷 Mobile View ───🕸 -->
+    <div class="mobile-view">
+        <div class="mobile-header">
+    <div class="mobile-header-main">
+        <div class="nav-item header-nav-item" data-content="home">
+            <i class="fas fa-home nav-icon"></i>
+        </div>
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search links and folders...">
+        </div>
+        <div class="nav-item header-nav-item" data-content="explore">
+            <i class="fas fa-compass nav-icon"></i>
+        </div>
+        <div class="nav-item header-create-btn" data-content="create">
+            <i class="fas fa-plus nav-icon"></i>
+        </div>
+        <div class="overflow-menu">
+            <button class="overflow-menu-btn">
+                <i class="fas fa-ellipsis-vertical"></i>
+            </button>
+            <div class="overflow-dropdown">
+                <div class="dropdown-item" id="mobile-select-btn">
+                    <i class="far fa-check-square"></i>
+                    <span>Select</span>
+                </div>
+                <div class="dropdown-item" id="mobile-copy-btn">
+                    <i class="far fa-copy"></i>
+                    <span>Copy</span>
+                </div>
+                <div class="dropdown-item" id="mobile-move-btn">
+                    <i class="fas fa-file-export"></i>
+                    <span>Move</span>
+                </div>
+                <div class="dropdown-item" id="mobile-delete-btn">
+                    <i class="far fa-eye-slash"></i>
+                    <span>Masquer</span>
+                    <div class="toggle-switch" id="mobile-mask-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item" id="mobile-show-masked-btn">
+                    <i class="fas fa-eye"></i>
+                    <span>Afficher masqués</span>
+                    <div class="toggle-switch" id="mobile-show-masked-toggle">
+                        <div class="toggle-track">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-item" id="mobile-info-btn">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Info</span>
+                </div>
+                <div class="dropdown-item" id="mobile-rename-btn">
+                    <i class="far fa-edit"></i>
+                    <span>Rename</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        
+        <div class="mobile-path">
+            <i class="fas fa-home"></i>
+            <span class="path-item">Storage</span>
+            <span class="separator">/</span>
+            <span class="path-item">Desktop</span>
+        </div>
+        
+        <div class="mobile-content" id="mobile-home-content">
+            <div class="storage-section">
+                <div class="storage-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Cloud Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-apps">24 apps</span> • 
+                        <span id="mobile-top-folders">5 folders</span> • 
+                        <span id="mobile-total-folders">8 folders</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-folder"></i>
+                Storage
+            </div>
+            
+            <div class="grid-container">
+                <div class="folder-item" data-name="Desktop">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Desktop</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Entertainment">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Entertainment</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-clock-rotate-left"></i>
+                Recently Added
+            </div>
+            
+            <div class="grid-container">
+                <div class="app-item" data-name="GitHub">
+                    <img src="https://www.google.com/s2/favicons?domain=github.com&sz=64" class="app-icon">
+                    <div class="item-name">GitHub</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="YouTube">
+                    <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=64" class="app-icon">
+                    <div class="item-name">YouTube</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Twitter">
+                    <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=64" class="app-icon">
+                    <div class="item-name">Twitter</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="app-item" data-name="Netflix">
+                    <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="app-icon">
+                    <div class="item-name">Netflix</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+            
+            <div class="section-title">
+                <i class="fas fa-folder-open"></i>
+                Recently Modified Folders
+            </div>
+            
+            <div class="grid-container">
+                <div class="folder-item" data-name="Work">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=slack.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=notion.so&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=gmail.com&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Work</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+                
+                <div class="folder-item" data-name="Entertainment">
+                    <div class="folder-icon">
+                        <i class="fas fa-folder"></i>
+                        <div class="folder-app-preview">
+                            <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=spotify.com&sz=64" class="preview-icon">
+                            <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=64" class="preview-icon">
+                        </div>
+                    </div>
+                    <div class="item-name">Entertainment</div>
+                    <div class="selection-checkbox"></div>
+                </div>
+            </div>
+        </div> 
+        
+Certains css :
+        :root {
+            --primary-color: #7289da;
+            --secondary-color: #5865f2;
+            --background-dark: #1e1e2e;
+            --card-dark: #2a2a3a;
+            --text-light: #f0f0f0;
+            --text-dim: #a0a0a0;
+            --border-radius: 10px;
+            --folder-color: #ffca28;
+            --app-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-dark);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Mobile Styles */
+        .mobile-view {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .mobile-header {
+            background-color: var(--card-dark);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-container {
+            position: relative;
+            flex: 1;
+            margin: 0 15px;
+        }
+
+        .search-container input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            border-radius: 20px;
+            border: none;
+            background-color: rgba(255,255,255,0.1);
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .search-container i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+        }
+
+        .mobile-path {
+            display: flex;
+            overflow-x: auto;
+            background-color: rgba(0,0,0,0.1);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .path-item {
+            color: var(--primary-color);
+        }
+
+        .separator {
+            color: var(--text-dim);
+            margin: 0 2px;
+        }
+
+        .mobile-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .storage-section {
+            background-color: var(--card-dark);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .storage-icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+
+        .storage-info {
+            flex: 1;
+            margin-left: 15px;
+        }
+
+        .storage-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .storage-detail {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 20px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .folder-item, .app-item {
+            background-color: var(--card-dark);
+            border-radius: var(--border-radius);
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .folder-item:hover, .app-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--app-shadow);
+        }
+
+        .folder-icon {
+            font-size: 2.5rem;
+            color: var(--folder-color);
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .folder-app-preview {
+            position: absolute;
+            bottom: -5px;
+            right: -10px;
+            display: flex;
+        }
+
+        .preview-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: white;
+            margin-left: -8px;
+            border: 2px solid var(--card-dark);
+            object-fit: cover;
+        }
+
+        .item-name {
+            font-size: 0.9rem;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .app-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            object-fit: cover;
+        }
+
+        .mobile-bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--card-dark);
+            padding: 12px 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .nav-item.active {
+            color: var(--primary-color);
+            opacity: 1;
+        }
+
+        .nav-icon {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        } 
+  ...
+          /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .desktop-view {
+                display: grid;
+            }
+            
+            .mobile-view {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .mobile-bottom-nav {
+                z-index: 20;
+            }
+            
+            .selection-toolbar.visible ~ .mobile-bottom-nav {
+                display: none;
+            }
+        }
+
+        /* Animation keyframes */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .slide-up {
+            animation: slideUp 0.3s forwards;
+        } 
+    
+
+Voici certains Javascript :
+
+    // ====== CODE DE L'APPLICATION PRINCIPALE ======
+    document.addEventListener('DOMContentLoaded', function() {
+    // Data model
+const appData = {
+    items: [],
+    selectedItems: [],
+    currentPath: ['Home'],
+    clipboardItems: [],
+    clipboardOperation: null, // 'copy' or 'move'
+    currentView: 'home',
+    isSelectionMode: false
+};
+
+// Initialisation de Supabase
+const SUPABASE_URL = 'https://xkknjyexynzukytfnlaj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhra25qeWV4eW56dWt5dGZubGFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc1OTI2MzksImV4cCI6MjA3MzE2ODYzOX0.wqp1W5TGJnbl_bhOwISs1s3Hy6bjFPUQhYX64vz3I9o';
+let supabase = null;
+
+// Fonction pour initialiser Supabase
+function initSupabase() {
+    try {
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('Supabase initialisé avec succès');
+            return true;
+        } else {
+            console.error('La bibliothèque Supabase n\'est pas disponible');
+            return false;
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation de Supabase:', error);
+        return false;
+    }
+}
+
+// Vérifier si supabase est disponible
+const supabaseAvailable = initSupabase();
+
+    
+// Structure des dossiers
+const fileSystem = {
+    Home: {
+        type: 'home',
+        items: {
+            Storage: {
+                type: 'folder',
+                items: {
+                    Desktop: {
+                        type: 'folder',
+                        items: {
+                            GitHub: { type: 'app', url: 'https://github[.]com' },
+                            YouTube: { type: 'app', url: 'https://youtube[.]com' },
+                            Twitter: { type: 'app', url: 'https://twitter[.]com' }
+                        }
+                    },
+                    Work: {
+                        type: 'folder',
+                        items: {
+                            Slack: { type: 'app', url: 'https://slack[.]com' },
+                            Notion: { type: 'app', url: 'https://notion[.]so' },
+                            Gmail: { type: 'app', url: 'https://gmail[.]com' }
+                        }
+                    },
+                    Entertainment: {
+                        type: 'folder',
+                        items: {
+                            Netflix: { type: 'app', url: 'https://netflix[.]com' },
+                            Spotify: { type: 'app', url: 'https://spotify[.]com' },
+                            Twitch: { type: 'app', url: 'https://twitch[.]tv' }
+                        }
+                    },
+                    Movies: {
+                        type: 'folder',
+                        items: {}
+                    },
+                    Music: {
+                        type: 'folder',
+                        items: {}
+                    }
+                }
+            }
+        }
+    }
+};
+
+
+// Ajouter le TasksStorage au système de fichiers
+fileSystem.Home.items['TasksStorage'] = {
+    type: 'folder',
+    items: {
+        '2025': {
+            type: 'folder',
+            items: {
+                '09': {
+                    type: 'folder',
+                    items: {
+                        '27': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '28': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '29': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        },
+                        '30': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                },
+                '10': {
+                    type: 'folder',
+                    items: {
+                        '01': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        '2024': {
+            type: 'folder',
+            items: {
+                '12': {
+                    type: 'folder',
+                    items: {
+                        '31': {
+                            type: 'folder',
+                            items: {
+                                'Bonjour': { type: 'task', emoji: '☀️' },
+                                'Bon après-midi': { type: 'task', emoji: '🌤️' },
+                                'Bonsoir': { type: 'task', emoji: '🌙' }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
+    
+    // DOM Elements
+    const mobileNavItems = document.querySelectorAll('.mobile-bottom-nav .nav-item');
+    const mobileContentSections = document.querySelectorAll('.mobile-content');
+    const overflowMenuBtn = document.querySelector('.overflow-menu-btn');
+    const overflowDropdown = document.querySelector('.overflow-dropdown');
+    const contextMenu = document.getElementById('context-menu');
+    const selectionToolbar = document.querySelector('.selection-toolbar');
+    const selectionCount = document.querySelector('.selection-count');
+    
+    // Mobile action buttons
+    const mobileSelectBtn = document.getElementById('mobile-select-btn');
+    const mobileCopyBtn = document.getElementById('mobile-copy-btn');
+    const mobileMoveBtn = document.getElementById('mobile-move-btn');
+    const mobileDeleteBtn = document.getElementById('mobile-delete-btn');
+    const mobileInfoBtn = document.getElementById('mobile-info-btn');
+    const mobileRenameBtn = document.getElementById('mobile-rename-btn');
+    
+    // Desktop action buttons
+    const desktopCreateBtn = document.getElementById('desktop-create-btn');
+    const desktopSelectBtn = document.getElementById('desktop-select-btn');
+    const desktopCopyBtn = document.getElementById('desktop-copy-btn');
+    const desktopMoveBtn = document.getElementById('desktop-move-btn');
+    const desktopPasteBtn = document.getElementById('desktop-paste-btn');
+    const desktopDeleteBtn = document.getElementById('desktop-delete-btn');
+    const desktopRenameBtn = document.getElementById('desktop-rename-btn');
+    const desktopInfoBtn = document.getElementById('desktop-info-btn');
+    const desktopExportBtn = document.getElementById('desktop-export-btn');
+  ...
+    
+// Mettre à jour les chemins de navigation
+function updatePaths() {
+    // Récupérer le chemin actuel
+    const currentPath = appData.currentPath;
+    
+    // Mettre à jour le chemin mobile
+    const mobilePath = document.querySelector('.mobile-path');
+    if (mobilePath) {
+        mobilePath.innerHTML = '';
+        
+        // Ajouter l'icône home
+        const homeIcon = document.createElement('i');
+        homeIcon.className = 'fas fa-home';
+        homeIcon.addEventListener('click', () => navigateTo(['Home']));
+        mobilePath.appendChild(homeIcon);
+        
+        // Ajouter les éléments du chemin (sauf Home qui est représenté par l'icône)
+        currentPath.slice(1).forEach((folder, index) => {
+            // Ajouter un séparateur avant chaque élément
+            const separator = document.createElement('span');
+            separator.className = 'separator';
+            separator.textContent = '/';
+            mobilePath.appendChild(separator);
+            
+            const pathItem = document.createElement('span');
+            pathItem.className = 'path-item';
+            pathItem.textContent = folder;
+            pathItem.addEventListener('click', () => {
+                navigateTo(currentPath.slice(0, index + 2)); // +2 pour compenser le slice(1) et l'indexation 0
+            });
+            mobilePath.appendChild(pathItem);
+        });
+    }
+    
+    // Mettre à jour le chemin desktop
+    const desktopPath = document.querySelector('.nav-breadcrumb');
+    if (desktopPath) {
+        desktopPath.innerHTML = '';
+        
+        // Ajouter l'icône home
+        const desktopHomeIcon = document.createElement('i');
+        desktopHomeIcon.className = 'fas fa-home';
+        desktopHomeIcon.addEventListener('click', () => navigateTo(['Home']));
+        desktopPath.appendChild(desktopHomeIcon);
+        
+        // Ajouter les éléments du chemin (sauf Home qui est représenté par l'icône)
+        currentPath.slice(1).forEach((folder, index) => {
+            // Ajouter un séparateur avant chaque élément
+            const separator = document.createElement('span');
+            separator.className = 'separator';
+            separator.textContent = '/';
+            desktopPath.appendChild(separator);
+            
+            const pathItem = document.createElement('span');
+            pathItem.className = 'path-item';
+            pathItem.textContent = folder;
+            pathItem.addEventListener('click', () => {
+                navigateTo(currentPath.slice(0, index + 2)); // +2 pour compenser le slice(1) et l'indexation 0
+            });
+            desktopPath.appendChild(pathItem);
+        });
+    }
+}
+
+    
+// Naviguer vers un dossier - version modifiée complète
+async function navigateTo(path) {
+    try {
+        appData.currentPath = path;
+        updatePaths();
+        
+        // Vérifier si le chemin existe
+        let current = fileSystem;
+        let valid = true;
+        
+        for (const folder of path) {
+            if (current[folder]) {
+                current = current[folder];
+            } else if (current.items && current.items[folder]) {
+                current = current.items[folder];
+            } else {
+                valid = false;
+                break;
+            }
+        }
+        
+        // Si le chemin n'est pas valide, essayer de récupérer le dossier depuis Supabase
+        if (!valid && supabaseAvailable && path.length > 1) {
+            console.log('Chemin non valide, tentative de récupération depuis Supabase:', path);
+            
+            // Essayer de trouver le dossier par son ID s'il est dans notre cache local
+            const lastSegment = path[path.length - 1];
+            const parentPath = path.slice(0, -1);
+            
+            // Rechercher le dossier dans Supabase
+            const { data: folderData, error } = await supabase
+                .from('folders')
+                .select('id, name, parent_path')
+                .eq('name', lastSegment)
+                .eq('parent_path', JSON.stringify(parentPath))
+                .single();
+                
+            if (!error && folderData) {
+                console.log('Dossier trouvé dans Supabase:', folderData);
+                // Rafraîchir l'arborescence pour s'assurer qu'elle est à jour
+                await refreshFolderTree();
+                valid = true;
+            } else {
+                console.error('Dossier non trouvé dans Supabase:', error);
+            }
+        }
+        
+        // Si le chemin n'est toujours pas valide, revenir à Home
+        if (!valid) {
+            console.warn('Chemin non valide, retour à Home:', path);
+            appData.currentPath = ['Home'];
+            updatePaths();
+        }
+        
+        // Ajouter ou supprimer la classe storage-view selon le chemin
+        const mobileView = document.querySelector('.mobile-view');
+        if (path.length > 1 && (path.includes('Storage') || path.includes('TasksStorage'))) {
+            mobileView.classList.add('storage-view');
+        } else {
+            mobileView.classList.remove('storage-view');
+        }
+        
+        // Activer l'onglet Home dans le header
+        const headerNavItems = document.querySelectorAll('.header-nav-item');
+        headerNavItems.forEach(navItem => {
+            navItem.classList.remove('active');
+            if (navItem.getAttribute('data-content') === 'home') {
+                navItem.classList.add('active');
+            }
+        });
+        
+        // Afficher le contenu Home
+        const mobileContentSections = document.querySelectorAll('.mobile-content');
+        mobileContentSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        const homeContent = document.getElementById('mobile-home-content');
+        if (homeContent) {
+            homeContent.style.display = 'block';
+            appData.currentView = 'home';
+        }
+        
+        updateContent();
+    } catch (error) {
+        console.error('Erreur lors de la navigation:', error);
+        // En cas d'erreur, revenir à Home
+        appData.currentPath = ['Home'];
+        updatePaths();
+        updateContent();
+    }
+}
+
+
+
+
+    
+    // Récupérer le dossier actuel
+    function getCurrentFolder() {
+        let current = fileSystem;
+        for (const folder of appData.currentPath) {
+            current = current[folder] ? current[folder] : current.items[folder];
+        }
+        return current;
+    }
+    
+// Mettre à jour le contenu en fonction du dossier actuel
+function updateContent() {
+    const currentFolder = getCurrentFolder();
+    
+    // Mettre à jour le contenu mobile
+    const mobileContent = document.getElementById('mobile-home-content');
+    if (mobileContent) {
+        mobileContent.innerHTML = '';
+        
+        // Si nous sommes à la page d'accueil (Home)
+        if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+            // Ajouter la section Storage comme accès au cloud storage
+            const storageSection = document.createElement('div');
+            storageSection.className = 'storage-section';
+            storageSection.innerHTML = `
+                <div class="storage-icon">
+                    <i class="fas fa-server"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Cloud Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-apps">24 apps</span> • 
+                        <span id="mobile-top-folders">5 folders</span> • 
+                        <span id="mobile-total-folders">8 folders</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            storageSection.addEventListener('click', () => {
+                navigateTo(['Home', 'Storage']);
+            });
+            mobileContent.appendChild(storageSection);
+            
+            // Ajouter la section TasksStorage comme deuxième storage
+            const tasksStorageSection = document.createElement('div');
+            tasksStorageSection.className = 'storage-section';
+            tasksStorageSection.innerHTML = `
+                <div class="storage-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="storage-info">
+                    <div class="storage-title">Tasks Storage</div>
+                    <div class="storage-detail">
+                        <span id="mobile-total-tasks">15 tâches</span> • 
+                        <span id="mobile-years">2 années</span> • 
+                        <span id="mobile-days">6 jours</span>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right"></i>
+            `;
+            tasksStorageSection.addEventListener('click', () => {
+                navigateTo(['Home', 'TasksStorage']);
+            });
+            mobileContent.appendChild(tasksStorageSection);
+            
+            // Ajouter la section d'accès rapide
+            const quickAccessTitle = document.createElement('div');
+            quickAccessTitle.className = 'section-title';
+            quickAccessTitle.innerHTML = `
+                <i class="fas fa-bolt"></i>
+                Accès rapide
+            `;
+            mobileContent.appendChild(quickAccessTitle);
+            
+            // Créer le conteneur de la grille pour les dossiers rapides
+            const foldersGridContainer = document.createElement('div');
+            foldersGridContainer.className = 'grid-container';
+            
+            // Ajouter les dossiers importants
+            const quickFolders = ['Desktop', 'Work', 'Entertainment'];
+            
+            quickFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    foldersGridContainer.appendChild(folderItem);
+                }
+            });
+            
+            mobileContent.appendChild(foldersGridContainer);
+            
+            // Section des éléments récemment ajoutés
+            const recentTitle = document.createElement('div');
+            recentTitle.className = 'section-title';
+            recentTitle.innerHTML = `
+                <i class="fas fa-clock-rotate-left"></i>
+                Recently Added
+            `;
+            mobileContent.appendChild(recentTitle);
+            
+            // Créer le conteneur de la grille pour les applications récentes
+            const recentAppsGrid = document.createElement('div');
+            recentAppsGrid.className = 'grid-container';
+            
+            // Ajouter quelques applications récentes
+            const recentApps = [
+                { name: 'GitHub', url: 'https://github[.]com', folder: 'Desktop' },
+                { name: 'YouTube', url: 'https://youtube[.]com', folder: 'Desktop' },
+                { name: 'Twitter', url: 'https://twitter[.]com', folder: 'Desktop' },
+                { name: 'Netflix', url: 'https://netflix[.]com', folder: 'Entertainment' }
+            ];
+            
+            recentApps.forEach(app => {
+                const appItem = createHomeAppItem(app.name, app.url, app.folder);
+                recentAppsGrid.appendChild(appItem);
+            });
+            
+            mobileContent.appendChild(recentAppsGrid);
+            
+            // Section des dossiers récemment modifiés
+            const recentFoldersTitle = document.createElement('div');
+            recentFoldersTitle.className = 'section-title';
+            recentFoldersTitle.innerHTML = `
+                <i class="fas fa-folder-open"></i>
+                Recently Modified Folders
+            `;
+            mobileContent.appendChild(recentFoldersTitle);
+            
+            // Créer le conteneur de la grille pour les dossiers récents
+            const recentFoldersGrid = document.createElement('div');
+            recentFoldersGrid.className = 'grid-container';
+            
+            // Ajouter quelques dossiers récents
+            const recentFolders = ['Work', 'Entertainment'];
+            
+            recentFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    recentFoldersGrid.appendChild(folderItem);
+                }
+            });
+            
+            mobileContent.appendChild(recentFoldersGrid);
+        }
+        // Si nous sommes dans un dossier normal
+        else {
+            // Ajouter le titre de la section
+            const sectionTitle = document.createElement('div');
+            sectionTitle.className = 'section-title';
+            sectionTitle.innerHTML = `
+                <i class="fas fa-folder"></i>
+                ${appData.currentPath[appData.currentPath.length - 1]}
+            `;
+            mobileContent.appendChild(sectionTitle);
+            
+            // Créer le conteneur de la grille
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'grid-container';
+            
+            // Vérifier si le dossier a des éléments
+            const items = currentFolder.items || {};
+            const itemKeys = Object.keys(items);
+            
+            if (itemKeys.length === 0) {
+                // Afficher un message si le dossier est vide
+                const emptyFolder = document.createElement('div');
+                emptyFolder.className = 'empty-folder';
+                emptyFolder.innerHTML = `
+                    <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-dim); margin-bottom: 10px;"></i>
+                    <p style="color: var(--text-dim);">Aucun élément dans ce dossier</p>
+                `;
+                gridContainer.appendChild(emptyFolder);
+            } else {
+                // Afficher les dossiers d'abord
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'folder') {
+                        const folderItem = createFolderItem(itemName);
+                        gridContainer.appendChild(folderItem);
+                    }
+                });
+                
+                // Ensuite afficher les applications ou tâches
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'app') {
+                        const appItem = createAppItem(itemName, item.url);
+                        gridContainer.appendChild(appItem);
+                    } else if (item.type === 'task') {
+                        const taskItem = createTaskItem(itemName, item.emoji);
+                        gridContainer.appendChild(taskItem);
+                    }
+                });
+            }
+            
+            mobileContent.appendChild(gridContainer);
+        }
+    }
+    
+    // Mettre à jour le contenu desktop
+    const desktopContent = document.querySelector('.desktop-content');
+    if (desktopContent) {
+        desktopContent.innerHTML = '';
+        
+        // Si nous sommes à la page d'accueil (Home)
+        if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+            // Créer la mise en page pour l'écran d'accueil du bureau
+            const desktopHomeLayout = document.createElement('div');
+            desktopHomeLayout.className = 'desktop-home-layout';
+            
+            // Section d'accès rapide
+            const quickAccessSection = document.createElement('div');
+            quickAccessSection.className = 'desktop-section';
+            
+            const quickAccessTitle = document.createElement('h2');
+            quickAccessTitle.className = 'desktop-section-title';
+            quickAccessTitle.innerHTML = `<i class="fas fa-bolt"></i> Accès rapide`;
+            quickAccessSection.appendChild(quickAccessTitle);
+            
+            const quickAccessGrid = document.createElement('div');
+            quickAccessGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter les dossiers importants
+            const quickFolders = ['Desktop', 'Work', 'Entertainment'];
+            
+            quickFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    quickAccessGrid.appendChild(folderItem);
+                }
+            });
+            
+            quickAccessSection.appendChild(quickAccessGrid);
+            desktopHomeLayout.appendChild(quickAccessSection);
+            
+            // Section des éléments récemment ajoutés
+            const recentSection = document.createElement('div');
+            recentSection.className = 'desktop-section';
+            
+            const recentTitle = document.createElement('h2');
+            recentTitle.className = 'desktop-section-title';
+            recentTitle.innerHTML = `<i class="fas fa-clock-rotate-left"></i> Recently Added`;
+            recentSection.appendChild(recentTitle);
+            
+            const recentGrid = document.createElement('div');
+            recentGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter quelques applications récentes
+            const recentApps = [
+                { name: 'GitHub', url: 'https://github[.]com', folder: 'Desktop' },
+                { name: 'YouTube', url: 'https://youtube[.]com', folder: 'Desktop' },
+                { name: 'Twitter', url: 'https://twitter[.]com', folder: 'Desktop' },
+                { name: 'Netflix', url: 'https://netflix[.]com', folder: 'Entertainment' },
+                { name: 'Spotify', url: 'https://spotify[.]com', folder: 'Entertainment' },
+                { name: 'Gmail', url: 'https://gmail[.]com', folder: 'Work' }
+            ];
+            
+            recentApps.forEach(app => {
+                const appItem = createHomeAppItem(app.name, app.url, app.folder);
+                recentGrid.appendChild(appItem);
+            });
+            
+            recentSection.appendChild(recentGrid);
+            desktopHomeLayout.appendChild(recentSection);
+            
+            // Section des dossiers récemment modifiés
+            const recentFoldersSection = document.createElement('div');
+            recentFoldersSection.className = 'desktop-section';
+            
+            const recentFoldersTitle = document.createElement('h2');
+            recentFoldersTitle.className = 'desktop-section-title';
+            recentFoldersTitle.innerHTML = `<i class="fas fa-folder-open"></i> Recently Modified Folders`;
+            recentFoldersSection.appendChild(recentFoldersTitle);
+            
+            const recentFoldersGrid = document.createElement('div');
+            recentFoldersGrid.className = 'grid-container desktop-grid';
+            
+            // Ajouter quelques dossiers récents
+            const recentFolders = ['Work', 'Entertainment'];
+            
+            recentFolders.forEach(folderName => {
+                const storageFolder = fileSystem.Home.items.Storage.items[folderName];
+                if (storageFolder) {
+                    const folderItem = createQuickFolderItem(folderName, storageFolder);
+                    recentFoldersGrid.appendChild(folderItem);
+                }
+            });
+            
+            recentFoldersSection.appendChild(recentFoldersGrid);
+            desktopHomeLayout.appendChild(recentFoldersSection);
+            
+            desktopContent.appendChild(desktopHomeLayout);
+            
+            // Mettre à jour le compteur d'éléments dans la barre de statut
+            const statusBar = document.querySelector('.status-bar');
+            if (statusBar) {
+                statusBar.innerHTML = `<span>Home</span>`;
+            }
+        } 
+        // Si nous sommes dans un dossier normal
+        else {
+            // Créer le conteneur de la grille desktop
+            const desktopGridContainer = document.createElement('div');
+            desktopGridContainer.className = 'grid-container desktop-grid';
+            
+            // Vérifier si le dossier a des éléments
+            const items = currentFolder.items || {};
+            const itemKeys = Object.keys(items);
+            
+            if (itemKeys.length === 0) {
+                // Afficher un message si le dossier est vide
+                const emptyFolder = document.createElement('div');
+                emptyFolder.className = 'empty-folder';
+                emptyFolder.innerHTML = `
+                    <i class="fas fa-folder-open" style="font-size: 5rem; color: var(--text-dim); margin-bottom: 20px;"></i>
+                    <p style="color: var(--text-dim); font-size: 1.2rem;">Ce dossier est vide</p>
+                `;
+                desktopGridContainer.appendChild(emptyFolder);
+            } else {
+                // Afficher les dossiers d'abord
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'folder') {
+                        const folderItem = createFolderItem(itemName);
+                        desktopGridContainer.appendChild(folderItem);
+                    }
+                });
+                
+                // Ensuite afficher les applications ou tâches
+                itemKeys.forEach(itemName => {
+                    const item = items[itemName];
+                    
+                    if (item.type === 'app') {
+                        const appItem = createAppItem(itemName, item.url);
+                        desktopGridContainer.appendChild(appItem);
+                    } else if (item.type === 'task') {
+                        const taskItem = createTaskItem(itemName, item.emoji);
+                        desktopGridContainer.appendChild(taskItem);
+                    }
+                });
+            }
+            
+            desktopContent.appendChild(desktopGridContainer);
+            
+            // Mettre à jour le compteur d'éléments dans la barre de statut
+            const statusBar = document.querySelector('.status-bar');
+            if (statusBar) {
+                statusBar.innerHTML = `<span>${itemKeys.length} items</span>`;
+            }
+        }
+    }
+    
+    // NOUVELLE PARTIE: Mise à jour dynamique du sidebar
+    updateSidebar();
+
+    refreshDataFromSupabase();
+}
+
+...
+
+// Créer un élément dossier pour le sidebar
+function createSidebarFolderItem(name, folder) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'sidebar-folder-item';
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des applications dans le dossier
+    const previewIcons = getPreviewIcons(folder.items);
+    
+    folderItem.innerHTML = `
+        <div class="sidebar-folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-mini-preview">
+                ${previewIcons}
+            </div>
+        </div>
+        <div class="sidebar-folder-name">${name}</div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function() {
+        navigateTo(['Home', 'Storage', name]);
+    });
+    
+    return folderItem;
+}
+
+// Créer un élément application pour le sidebar
+function createSidebarAppItem(name, url) {
+    const appItem = document.createElement('div');
+    appItem.className = 'sidebar-app-item';
+    appItem.setAttribute('data-name', name);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="sidebar-app-icon">
+        <div class="sidebar-app-name">${name}</div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function() {
+        showToast(`Opening ${name}`, 'info');
+    });
+    
+    return appItem;
+}
+
+// Obtenir les icônes de preview pour un dossier
+function getPreviewIcons(items) {
+    let previewIcons = '';
+    const appKeys = Object.keys(items).filter(key => items[key].type === 'app').slice(0, 3);
+    
+    if (appKeys.length === 0) {
+        return '';
+    }
+    
+    appKeys.forEach(appName => {
+        const domain = items[appName].url.replace('https://', '').split('/')[0];
+        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="mini-icon">`;
+    });
+    
+    return previewIcons;
+}
+
+// Obtenir les icônes de preview pour un dossier de tâches
+function getTaskPreviewIcons(items) {
+    let previewIcons = '';
+    const taskKeys = Object.keys(items).filter(key => items[key].type === 'task').slice(0, 3);
+    
+    if (taskKeys.length === 0) {
+        return '';
+    }
+    
+    taskKeys.forEach(taskName => {
+        previewIcons += `<div class="mini-emoji">${items[taskName].emoji}</div>`;
+    });
+    
+    return previewIcons;
+}
+
+    
+// Créer un élément dossier
+function createFolderItem(name) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'folder-item';
+    if (name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked)) {
+        folderItem.classList.add('masked-item');
+    }
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des éléments dans le dossier
+    let previewIcons = '';
+    const folderItems = getCurrentFolder().items[name].items;
+    
+    // Vérifier si nous sommes dans le TasksStorage
+    const isTasksFolder = appData.currentPath.includes('TasksStorage');
+    
+    if (isTasksFolder) {
+        // Afficher des aperçus d'emojis pour les tâches
+        const taskKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'task').slice(0, 3);
+        
+        taskKeys.forEach(taskName => {
+            previewIcons += `<div class="preview-emoji">${folderItems[taskName].emoji}</div>`;
+        });
+    } else {
+        // Afficher des aperçus d'applications normales
+        const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
+        
+        appKeys.forEach(appName => {
+            const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
+            previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
+        });
+    }
+    
+    folderItem.innerHTML = `
+        <div class="folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-app-preview">
+                ${previewIcons || '<i class="fas fa-folder-open" style="font-size: 14px; color: #a0a0a0;"></i>'}
+            </div>
+        </div>
+        <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom du dossier, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Sinon, naviguer vers le dossier
+            const newPath = [...appData.currentPath, name];
+            navigateTo(newPath);
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    folderItem.addEventListener('contextmenu', e => {
+        if (contextMenu) {
+            showContextMenu(e, folderItem);
+            // Mettre à jour l'état du toggle de masquage
+            const maskToggle = document.getElementById('context-mask-toggle');
+            if (maskToggle) {
+                const isMasked = name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked);
+                maskToggle.classList.toggle('active', isMasked);
+            }
+        }
+    });
+    
+    return folderItem;
+}
+
+
+
+// Nouvelle fonction pour rendre un nom d'élément éditable
+function makeItemNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing && currentlyEditing !== nameElement) {
+        finishEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    const itemType = parentItem.classList.contains('folder-item') ? 'folder' : 'app';
+    
+    // Éviter de relancer l'édition si elle est déjà en cours
+    if (nameElement.classList.contains('item-name-editing')) {
+        return;
+    }
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Stocker le nom d'origine dans un attribut de données
+    nameElement.setAttribute('data-original-name', originalName);
+    
+    // Stocker une référence au gestionnaire d'événements pour pouvoir le supprimer
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+            nameElement.removeEventListener('blur', onBlur);
+        }
+    }
+    
+    function onBlur() {
+        finishEditing(nameElement);
+        nameElement.removeEventListener('keydown', handleEnterKey);
+        nameElement.removeEventListener('blur', onBlur);
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    nameElement.addEventListener('blur', onBlur);
+    
+    // Fonction pour terminer l'édition
+    function finishEditing(element) {
+        if (!element.isContentEditable) return; // Éviter le double traitement
+        
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            console.log(`Renommage: ${currentName} -> ${newName}`);
+            
+            // Pour les dossiers, on doit mettre à jour le système de fichiers
+            if (itemType === 'folder') {
+                renameFolder(currentName, newName);
+            } else if (itemType === 'app') {
+                renameApp(currentName, newName);
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+
+
+// Fonction pour renommer un dossier avec mise à jour dans Supabase
+async function renameFolder(oldName, newName) {
+    const currentFolder = getCurrentFolder();
+    
+    // Vérifier si le nouveau nom existe déjà (mais ignorer si c'est le même dossier avec un identifiant temporaire)
+    if (currentFolder.items[newName] && 
+        (!currentFolder.items[oldName]._tempId || 
+         currentFolder.items[oldName]._tempId !== currentFolder.items[newName]._tempId)) {
+        showToast(`Un dossier nommé "${newName}" existe déjà`, 'error');
+        // Rétablir l'ancien nom dans l'interface
+        const folderItem = document.querySelector(`.folder-item[data-name="${oldName}"]`);
+        if (folderItem) {
+            folderItem.querySelector('.item-name').textContent = oldName;
+        }
+        return;
+    }
+    
+    // Si le dossier était temporaire, simplement le renommer sans chercher à trouver un duplicat
+    const isNewFolder = currentFolder.items[oldName] && currentFolder.items[oldName]._tempId;
+    
+    // Copier l'objet avec le nouveau nom
+    currentFolder.items[newName] = {...currentFolder.items[oldName]};
+    // Supprimer l'ancien
+    delete currentFolder.items[oldName];
+    
+    // Mettre à jour l'attribut data-name de l'élément
+    const folderItem = document.querySelector(`.folder-item[data-name="${oldName}"]`);
+    if (folderItem) {
+        folderItem.setAttribute('data-name', newName);
+        folderItem.querySelector('.item-name').textContent = newName;
+    }
+    
+    // Construire le chemin complet actuel
+    const currentPath = [...appData.currentPath];
+    let folderId = null;
+    let originalParentPath = null;
+    
+    // Mettre à jour dans Supabase
+    if (supabaseAvailable) {
+        try {
+            // Essayer d'abord de récupérer l'ID stocké directement dans l'objet local
+            if (currentFolder.items[newName]._id) {
+                folderId = currentFolder.items[newName]._id;
+                console.log('ID du dossier trouvé dans l\'objet local:', folderId);
+            } else {
+                // Rechercher dans Supabase en utilisant le nom et le chemin parent
+                console.log('Recherche du dossier dans Supabase:', oldName, JSON.stringify(appData.currentPath));
+                const { data: folderData, error: fetchError } = await supabase
+                    .from('folders')
+                    .select('id, parent_path')
+                    .eq('name', oldName)
+                    .eq('parent_path', JSON.stringify(appData.currentPath))
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('Erreur lors de la recherche du dossier à renommer:', fetchError);
+                } else if (folderData) {
+                    folderId = folderData.id;
+                    originalParentPath = folderData.parent_path;
+                    // Stocker l'ID pour future référence
+                    currentFolder.items[newName]._id = folderId;
+                    console.log('ID du dossier trouvé dans Supabase:', folderId);
+                }
+            }
+            
+            if (folderId) {
+                // Mettre à jour le dossier
+                console.log('Mise à jour du dossier avec ID:', folderId, 'nouveau nom:', newName);
+                const { data: updateData, error: updateError } = await supabase
+                    .from('folders')
+                    .update({ name: newName })
+                    .eq('id', folderId)
+                    .select();
+                    
+                if (updateError) {
+                    console.error('Erreur lors de la mise à jour du nom du dossier:', updateError);
+                    showToast('Erreur lors du renommage dans la base de données', 'error');
+                } else {
+                    console.log('Dossier renommé avec succès dans la base de données:', updateData);
+                    
+                    // Construire l'ancien et le nouveau chemin complet pour la mise à jour des sous-éléments
+                    const oldPathComplete = [...currentPath, oldName];
+                    const newPathComplete = [...currentPath, newName];
+                    
+                    // NOUVELLE PARTIE : Mettre à jour les chemins des sous-dossiers
+                    await updateSubfoldersPath(oldPathComplete, newPathComplete);
+                    
+                    showToast(`Dossier renommé en "${newName}"`, 'success');
+                }
+            } else {
+                console.error('Impossible de trouver l\'ID du dossier à renommer');
+                showToast('Erreur: ID du dossier non trouvé', 'error');
+            }
+        } catch (error) {
+            console.error('Exception lors du renommage du dossier dans la base de données:', error);
+            showToast('Exception lors du renommage du dossier', 'error');
+        }
+    } else {
+        showToast(`Dossier renommé en "${newName}"`, 'success');
+    }
+    
+    // Mettre à jour l'interface
+    updateContent();
+}
+
+// Fonction pour mettre à jour les chemins des sous-dossiers et leurs contenus
+async function updateSubfoldersPath(oldPath, newPath) {
+    if (!supabaseAvailable) return;
+    
+    try {
+        console.log('Mise à jour des chemins des sous-dossiers:', 
+                    JSON.stringify(oldPath), '->', JSON.stringify(newPath));
+        
+        // 1. Récupérer tous les dossiers dont le parent_path commence par l'ancien chemin
+        const { data: subfolders, error: fetchError } = await supabase
+            .from('folders')
+            .select('id, name, parent_path');
+        
+        if (fetchError) {
+            console.error('Erreur lors de la récupération des sous-dossiers:', fetchError);
+            return;
+        }
+        
+        // Filtrer les sous-dossiers qui sont concernés par le changement
+        const affectedFolders = subfolders.filter(folder => {
+            // Convertir parent_path en tableau s'il est stocké comme JSON
+            const parentPath = Array.isArray(folder.parent_path) ? 
+                folder.parent_path : JSON.parse(folder.parent_path);
+            
+            // Vérifier si ce dossier est un sous-dossier du dossier renommé
+            // ou si son chemin parent contient le dossier renommé
+            return isSubPath(oldPath, parentPath);
+        });
+        
+        console.log(`${affectedFolders.length} sous-dossiers affectés par le renommage.`);
+        
+        // 2. Mettre à jour les chemins des sous-dossiers affectés
+        for (const folder of affectedFolders) {
+            // Convertir parent_path en tableau s'il est stocké comme JSON
+            const oldParentPath = Array.isArray(folder.parent_path) ? 
+                folder.parent_path : JSON.parse(folder.parent_path);
+            
+            // Créer le nouveau chemin parent en remplaçant l'ancien segment par le nouveau
+            const newParentPath = updatePath(oldParentPath, oldPath, newPath);
+            
+            console.log(`Mise à jour du chemin: ${JSON.stringify(oldParentPath)} -> ${JSON.stringify(newParentPath)}`);
+            
+            // Mettre à jour le chemin dans la base de données
+            const { error: updateError } = await supabase
+                .from('folders')
+                .update({ parent_path: newParentPath })
+                .eq('id', folder.id);
+            
+            if (updateError) {
+                console.error(`Erreur lors de la mise à jour du chemin du sous-dossier ${folder.name}:`, updateError);
+            }
+        }
+    } catch (error) {
+        console.error('Exception lors de la mise à jour des chemins des sous-dossiers:', error);
+    }
+}
+
+// Fonction pour vérifier si un chemin est un sous-chemin d'un autre
+function isSubPath(parentPath, testPath) {
+    // Si le chemin à tester est plus court, il ne peut pas être un sous-chemin
+    if (testPath.length < parentPath.length) return false;
+    
+    // Vérifier si le début du chemin à tester correspond au chemin parent
+    for (let i = 0; i < parentPath.length; i++) {
+        if (parentPath[i] !== testPath[i]) return false;
+    }
+    
+    return true;
+}
+
+// Fonction pour mettre à jour un chemin en remplaçant un segment
+function updatePath(originalPath, oldSegment, newSegment) {
+    // Créer une copie du chemin original
+    const updatedPath = [...originalPath];
+    
+    // Trouver où le segment à remplacer commence
+    let startIndex = -1;
+    for (let i = 0; i <= originalPath.length - oldSegment.length; i++) {
+        let matches = true;
+        for (let j = 0; j < oldSegment.length; j++) {
+            if (originalPath[i + j] !== oldSegment[j]) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) {
+            startIndex = i;
+            break;
+        }
+    }
+    
+    // Si le segment a été trouvé, le remplacer
+    if (startIndex !== -1) {
+        // Supprimer la partie à remplacer
+        updatedPath.splice(startIndex, oldSegment.length);
+        // Insérer le nouveau segment
+        for (let i = newSegment.length - 1; i >= 0; i--) {
+            updatedPath.splice(startIndex, 0, newSegment[i]);
+        }
+    }
+    
+    return updatedPath;
+}
+
+// Fonction pour rafraîchir l'arborescence complète des dossiers
+async function refreshFolderTree() {
+    if (!supabaseAvailable) return;
+    
+    try {
+        console.log('Rafraîchissement de l\'arborescence des dossiers...');
+        
+        // Sauvegarder le chemin actuel
+        const currentPath = [...appData.currentPath];
+        
+        // Recharger tous les dossiers et applications
+        await loadFoldersFromSupabase();
+        
+        // Restaurer le chemin de navigation
+        navigateTo(currentPath);
+        
+        console.log('Arborescence des dossiers rafraîchie avec succès.');
+    } catch (error) {
+        console.error('Erreur lors du rafraîchissement de l\'arborescence des dossiers:', error);
+    }
+}
+
+
+// Vérifier si un nom d'élément existe déjà dans le dossier courant
+function itemNameExists(name, excludeItem = null) {
+    const currentFolder = getCurrentFolder();
+    if (!currentFolder || !currentFolder.items) return false;
+    
+    // Si le nom n'existe pas du tout, retourner false
+    if (!currentFolder.items[name]) return false;
+    
+    // Si on a fourni un élément à exclure et que c'est le même (par ID temporaire)
+    if (excludeItem && 
+        currentFolder.items[excludeItem] && 
+        currentFolder.items[excludeItem]._tempId && 
+        currentFolder.items[name]._tempId === currentFolder.items[excludeItem]._tempId) {
+        return false;
+    }
+    
+    return true;
+}
+
+
+// Fonction pour renommer une application avec mise à jour dans Supabase
+async function renameApp(oldName, newName) {
+    const currentFolder = getCurrentFolder();
+    
+    // Vérifier si le nouveau nom existe déjà
+    if (currentFolder.items[newName]) {
+        showToast(`Une application nommée "${newName}" existe déjà`, 'error');
+        // Rétablir l'ancien nom dans l'interface
+        const appItem = document.querySelector(`.app-item[data-name="${oldName}"]`);
+        if (appItem) {
+            appItem.querySelector('.item-name').textContent = oldName;
+        }
+        return;
+    }
+    
+    // Copier l'objet avec le nouveau nom
+    currentFolder.items[newName] = currentFolder.items[oldName];
+    // Supprimer l'ancien
+    delete currentFolder.items[oldName];
+    
+    // Mettre à jour l'attribut data-name de l'élément
+    const appItem = document.querySelector(`.app-item[data-name="${oldName}"]`);
+    if (appItem) {
+        appItem.setAttribute('data-name', newName);
+    }
+    
+    // Mettre à jour dans Supabase
+    if (supabaseAvailable) {
+        try {
+            // Obtenir l'ID du dossier parent
+            const folderId = await getFolderIdFromPath(appData.currentPath);
+            
+            if (folderId) {
+                // Rechercher l'application dans Supabase
+                const { data: appData, error: fetchError } = await supabase
+                    .from('apps')
+                    .select('id')
+                    .eq('name', oldName)
+                    .eq('folder_id', folderId)
+                    .single();
+                    
+                if (!fetchError && appData) {
+                    // Mettre à jour le nom de l'application
+                    const { error: updateError } = await supabase
+                        .from('apps')
+                        .update({ name: newName })
+                        .eq('id', appData.id);
+                        
+                    if (updateError) {
+                        console.error('Erreur lors de la mise à jour du nom de l\'application:', updateError);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Exception lors du renommage de l\'application dans la base de données:', error);
+        }
+    }
+    
+    showToast(`Application renommée en "${newName}"`, 'success');
+    
+    // Mettre à jour l'interface
+    updateContent();
+}
+
+
+// Nouvelle fonction pour créer un dossier directement dans la vue desktop et le sauvegarder dans Supabase
+async function createNewFolderInDesktop() {
+    // Vérifier si on est dans la vue desktop
+    const desktopGrid = document.querySelector('.desktop-grid');
+    if (!desktopGrid) return;
+    
+    // Si on est dans Home, naviguer vers Storage d'abord
+    if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+        navigateTo(['Home', 'Storage']);
+        // Attendre que la navigation soit terminée avant de créer le dossier
+        setTimeout(() => createNewFolderInDesktop(), 100);
+        return;
+    }
+    
+    // Générer un nom de dossier temporaire unique
+    let tempName = "New Folder";
+    let counter = 1;
+    const currentFolder = getCurrentFolder();
+    
+    while (currentFolder.items[tempName]) {
+        tempName = `New Folder (${counter})`;
+        counter++;
+    }
+    
+    // Créer le dossier dans le système de fichiers local
+    currentFolder.items[tempName] = {
+        type: 'folder',
+        items: {},
+        _tempId: Date.now() // Ajouter un identifiant temporaire unique
+    };
+    
+    // Créer l'élément visuel du dossier
+    const newFolderItem = createFolderItem(tempName);
+    desktopGrid.appendChild(newFolderItem);
+    
+    let folderId = null;
+    
+    // Sauvegarder le dossier dans Supabase
+    if (supabaseAvailable) {
+        try {
+            const { data, error } = await supabase
+                .from('folders')
+                .insert({
+                    name: tempName,
+                    parent_path: appData.currentPath,
+                    is_masked: false
+                })
+                .select(); // Récupérer les données insérées pour obtenir l'ID
+                
+            if (error) {
+                console.error('Erreur lors de la sauvegarde du dossier:', error);
+                showToast('Erreur lors de la sauvegarde du dossier', 'error');
+            } else if (data && data.length > 0) {
+                folderId = data[0].id;
+                // Stocker l'ID du dossier dans l'objet local pour référence future
+                currentFolder.items[tempName]._id = folderId;
+                console.log('Dossier sauvegardé avec succès, ID:', folderId);
+            }
+        } catch (error) {
+            console.error('Exception lors de la sauvegarde du dossier:', error);
+            showToast('Exception lors de la sauvegarde du dossier', 'error');
+        }
+    }
+    
+    // Mettre le nom en mode édition immédiatement
+    const nameElement = newFolderItem.querySelector('.item-name');
+    
+    // Petit délai pour s'assurer que l'élément est bien rendu
+    setTimeout(() => {
+        makeItemNameEditable(nameElement, newFolderItem);
+    }, 50);
+}
+
+
+
+    
+// Créer un élément application
+function createAppItem(name, url) {
+    const appItem = document.createElement('div');
+    appItem.className = 'app-item';
+    if (name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked)) {
+        appItem.classList.add('masked-item');
+    }
+    appItem.setAttribute('data-name', name);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de l'app, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Sinon, ouvrir l'application
+            showToast(`Opening ${name.startsWith('#') ? name.substring(1) : name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    appItem.addEventListener('contextmenu', e => {
+        if (contextMenu) {
+            showContextMenu(e, appItem);
+            // Mettre à jour l'état du toggle de masquage
+            const maskToggle = document.getElementById('context-mask-toggle');
+            if (maskToggle) {
+                const isMasked = name.startsWith('#') || (getCurrentFolder().items[name] && getCurrentFolder().items[name].masked);
+                maskToggle.classList.toggle('active', isMasked);
+            }
+        }
+    });
+    
+    return appItem;
+}
+
+// Créer un élément tâche
+function createTaskItem(name, emoji) {
+    const taskItem = document.createElement('div');
+    taskItem.className = 'app-item task-item';
+    taskItem.setAttribute('data-name', name);
+    
+    taskItem.innerHTML = `
+        <div class="task-icon">${emoji}</div>
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    taskItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de la tâche, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeItemNameEditable(e.target, this);
+                return;
+            }
+            // Rien ne se passe pour l'instant quand on clique sur une tâche
+            showToast(`Tâche: ${name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    taskItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, taskItem);
+    });
+    
+    return taskItem;
+}
+
+    
+    // Créer un élément dossier pour l'écran d'accueil
+function createQuickFolderItem(name, folder) {
+    const folderItem = document.createElement('div');
+    folderItem.className = 'folder-item';
+    folderItem.setAttribute('data-name', name);
+    
+    // Récupérer les aperçus des applications dans le dossier
+    let previewIcons = '';
+    const folderItems = folder.items;
+    const appKeys = Object.keys(folderItems).filter(key => folderItems[key].type === 'app').slice(0, 3);
+    
+    appKeys.forEach(appName => {
+        const domain = folderItems[appName].url.replace('https://', '').split('/')[0];
+        previewIcons += `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="preview-icon">`;
+    });
+    
+    folderItem.innerHTML = `
+        <div class="folder-icon">
+            <i class="fas fa-folder"></i>
+            <div class="folder-app-preview">
+                ${previewIcons || '<i class="fas fa-folder-open" style="font-size: 14px; color: #a0a0a0;"></i>'}
+            </div>
+        </div>
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    folderItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom du dossier, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeQuickFolderNameEditable(e.target, this);
+                return;
+            }
+            // Naviguer vers le dossier dans Storage
+            const newPath = ['Home', 'Storage', name];
+            navigateTo(newPath);
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    folderItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, folderItem);
+    });
+    
+    return folderItem;
+}
+
+// Fonction spécifique pour l'édition des dossiers rapides
+function makeQuickFolderNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing) {
+        finishQuickFolderEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Gérer la touche Entrée et la perte de focus
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishQuickFolderEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+        }
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    
+    nameElement.addEventListener('blur', function onBlur() {
+        finishQuickFolderEditing(nameElement);
+        nameElement.removeEventListener('blur', onBlur);
+    });
+    
+    // Fonction pour terminer l'édition d'un dossier rapide
+    function finishQuickFolderEditing(element) {
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            // Renommer le dossier dans Storage
+            if (fileSystem.Home.items.Storage && fileSystem.Home.items.Storage.items[currentName]) {
+                // Vérifier si le nouveau nom existe déjà
+                if (fileSystem.Home.items.Storage.items[newName]) {
+                    showToast(`A folder named "${newName}" already exists in Storage`, 'error');
+                    element.textContent = currentName;
+                    return;
+                }
+                
+                // Copier l'objet avec le nouveau nom
+                fileSystem.Home.items.Storage.items[newName] = fileSystem.Home.items.Storage.items[currentName];
+                // Supprimer l'ancien
+                delete fileSystem.Home.items.Storage.items[currentName];
+                
+                // Mettre à jour l'attribut data-name de l'élément
+                parentItem.setAttribute('data-name', newName);
+                
+                showToast(`Folder renamed to "${newName}"`, 'success');
+                
+                // Mettre à jour l'interface
+                updateContent();
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+
+// Fonction spécifique pour l'édition des apps rapides
+function makeHomeAppNameEditable(nameElement, parentItem) {
+    // Si un autre élément est déjà en cours d'édition, annuler cette édition
+    const currentlyEditing = document.querySelector('.item-name-editing');
+    if (currentlyEditing) {
+        finishHomeAppEditing(currentlyEditing);
+    }
+    
+    const originalName = nameElement.textContent;
+    const folderName = parentItem.getAttribute('data-folder');
+    
+    // Transformer l'élément en champ éditable
+    nameElement.contentEditable = true;
+    nameElement.classList.add('item-name-editing');
+    nameElement.focus();
+    
+    // Sélectionner tout le texte
+    const range = document.createRange();
+    range.selectNodeContents(nameElement);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    // Gérer la touche Entrée et la perte de focus
+    function handleEnterKey(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishHomeAppEditing(nameElement);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            nameElement.textContent = originalName;
+            nameElement.contentEditable = false;
+            nameElement.classList.remove('item-name-editing');
+            nameElement.removeEventListener('keydown', handleEnterKey);
+        }
+    }
+    
+    nameElement.addEventListener('keydown', handleEnterKey);
+    
+    nameElement.addEventListener('blur', function onBlur() {
+        finishHomeAppEditing(nameElement);
+        nameElement.removeEventListener('blur', onBlur);
+    });
+    
+    // Fonction pour terminer l'édition d'une app rapide
+    function finishHomeAppEditing(element) {
+        const newName = element.textContent.trim();
+        const currentName = parentItem.getAttribute('data-name');
+        
+        element.contentEditable = false;
+        element.classList.remove('item-name-editing');
+        
+        // Si le nom a changé et n'est pas vide
+        if (newName && newName !== currentName) {
+            // Renommer l'app dans le dossier parent
+            if (fileSystem.Home.items.Storage && 
+                fileSystem.Home.items.Storage.items[folderName] &&
+                fileSystem.Home.items.Storage.items[folderName].items[currentName]) {
+                
+                // Vérifier si le nouveau nom existe déjà
+                if (fileSystem.Home.items.Storage.items[folderName].items[newName]) {
+                    showToast(`An app named "${newName}" already exists in ${folderName}`, 'error');
+                    element.textContent = currentName;
+                    return;
+                }
+                
+                // Copier l'objet avec le nouveau nom
+                fileSystem.Home.items.Storage.items[folderName].items[newName] = 
+                    fileSystem.Home.items.Storage.items[folderName].items[currentName];
+                
+                // Supprimer l'ancien
+                delete fileSystem.Home.items.Storage.items[folderName].items[currentName];
+                
+                // Mettre à jour l'attribut data-name de l'élément
+                parentItem.setAttribute('data-name', newName);
+                
+                showToast(`App renamed to "${newName}"`, 'success');
+                
+                // Mettre à jour l'interface
+                updateContent();
+            }
+        } else if (!newName) {
+            // Si le nom est vide, revenir au nom original
+            element.textContent = currentName;
+        }
+    }
+}
+
+
+// Créer un élément application pour l'écran d'accueil
+function createHomeAppItem(name, url, folderName) {
+    const appItem = document.createElement('div');
+    appItem.className = 'app-item';
+    appItem.setAttribute('data-name', name);
+    appItem.setAttribute('data-folder', folderName);
+    
+    const domain = url.replace('https://', '').split('/')[0];
+    
+    appItem.innerHTML = `
+        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        <div class="item-name">${name}</div>
+        <div class="selection-checkbox"></div>
+    `;
+    
+    // Ajouter l'événement de clic
+    appItem.addEventListener('click', function(e) {
+        if (appData.isSelectionMode) {
+            const checkbox = this.querySelector('.selection-checkbox');
+            checkbox.classList.toggle('selected');
+            
+            const itemName = this.getAttribute('data-name');
+            const index = appData.selectedItems.indexOf(itemName);
+            
+            if (index === -1) {
+                appData.selectedItems.push(itemName);
+            } else {
+                appData.selectedItems.splice(index, 1);
+            }
+            
+            updateSelectionCount();
+        } else {
+            // Si le clic est sur le nom de l'app, passer en mode édition
+            if (e.target.classList.contains('item-name')) {
+                makeHomeAppNameEditable(e.target, this);
+                return;
+            }
+            // Ouvrir l'application
+            showToast(`Opening ${name}`, 'info');
+        }
+    });
+    
+    // Ajouter l'événement de clic droit
+    appItem.addEventListener('contextmenu', e => {
+        if (contextMenu) showContextMenu(e, appItem);
+    });
+    
+    return appItem;
+}
+
+// Nouvelle fonction pour créer un dossier directement dans la vue mobile et le sauvegarder dans Supabase
+async function createNewFolderInMobile() {
+    // Si nous sommes sur la page d'accueil, naviguer vers Storage d'abord
+    if (appData.currentPath.length === 1 && appData.currentPath[0] === 'Home') {
+        navigateTo(['Home', 'Storage']);
+        // Attendre que la navigation soit terminée avant de créer le dossier
+        setTimeout(() => createNewFolderInMobile(), 100);
+        return;
+    }
+    
+    // Générer un nom de dossier temporaire unique
+    let tempName = "New Folder";
+    let counter = 1;
+    const currentFolder = getCurrentFolder();
+    
+    while (currentFolder.items[tempName]) {
+        tempName = `New Folder (${counter})`;
+        counter++;
+    }
+    
+    // Créer le dossier dans le système de fichiers local
+    currentFolder.items[tempName] = {
+        type: 'folder',
+        items: {},
+        _tempId: Date.now() // Ajouter un identifiant temporaire unique
+    };
+    
+    let folderId = null;
+    
+    // Sauvegarder le dossier dans Supabase
+    if (supabaseAvailable) {
+        try {
+            const { data, error } = await supabase
+                .from('folders')
+                .insert({
+                    name: tempName,
+                    parent_path: appData.currentPath,
+                    is_masked: false
+                })
+                .select(); // Récupérer les données insérées
+                
+            if (error) {
+                console.error('Erreur lors de la sauvegarde du dossier:', error);
+                showToast('Erreur lors de la sauvegarde du dossier', 'error');
+            } else if (data && data.length > 0) {
+                folderId = data[0].id;
+                // Stocker l'ID du dossier dans l'objet local
+                currentFolder.items[tempName]._id = folderId;
+                console.log('Dossier sauvegardé avec succès, ID:', folderId);
+            }
+        } catch (error) {
+            console.error('Exception lors de la sauvegarde du dossier:', error);
+            showToast('Exception lors de la sauvegarde du dossier', 'error');
+        }
+    }
+    
+    // Mettre à jour le contenu
+    updateContent();
+    
+    // Trouver le nouvel élément créé
+    setTimeout(() => {
+        const newFolderItem = document.querySelector(`.folder-item[data-name="${tempName}"]`);
+        if (newFolderItem) {
+            const nameElement = newFolderItem.querySelector('.item-name');
+            makeItemNameEditable(nameElement, newFolderItem);
+        }
+    }, 100);
+    
+    // Réinitialiser la navigation active si nécessaire
+    const homeNavItem = document.querySelector('.mobile-bottom-nav .nav-item[data-content="home"]');
+    if (homeNavItem) {
+        document.querySelectorAll('.mobile-bottom-nav .nav-item').forEach(navItem => {
+            navItem.classList.remove('active');
+        });
+        homeNavItem.classList.add('active');
+    }
+}
+
+
+// Fonction pour créer une application et la sauvegarder dans Supabase
+async function createNewApp(name, url, folderPath = null) {
+    if (!folderPath) {
+        folderPath = appData.currentPath;
+    }
+    
+    // Obtenir le dossier courant
+    let currentFolder = getCurrentFolder();
+    
+    // Vérifier si le nom existe déjà
+    if (currentFolder.items[name]) {
+        let counter = 1;
+        let newName = `${name} (${counter})`;
+        while (currentFolder.items[newName]) {
+            counter++;
+            newName = `${name} (${counter})`;
+        }
+        name = newName;
+    }
+    
+    // Créer l'application dans le système de fichiers local
+    currentFolder.items[name] = {
+        type: 'app',
+        url: url
+    };
+    
+    // Sauvegarder dans Supabase
+    if (supabaseAvailable) {
+        try {
+            // Obtenir d'abord l'ID du dossier parent
+            const folderId = await getFolderIdFromPath(folderPath);
+            
+            if (folderId) {
+                const { data, error } = await supabase
+                    .from('apps')
+                    .insert({
+                        name: name,
+                        url: url,
+                        folder_id: folderId,
+                        is_masked: false
+                    });
+                    
+                if (error) {
+                    console.error('Erreur lors de la sauvegarde de l\'application:', error);
+                    showToast('Erreur lors de la sauvegarde de l\'application', 'error');
+                } else {
+                    console.log('Application sauvegardée avec succès:', data);
+                }
+            } else {
+                console.error('Impossible de trouver l\'ID du dossier parent');
+                showToast('Erreur: Impossible de trouver le dossier parent', 'error');
+            }
+        } catch (error) {
+            console.error('Exception lors de la sauvegarde de l\'application:', error);
+            showToast('Exception lors de la sauvegarde de l\'application', 'error');
+        }
+    }
+    
+    // Mettre à jour l'interface
+    updateContent();
+    
+    return name;
+}
+
+    
+// Mobile navigation
+mobileNavItems.forEach(item => {
+    item.addEventListener('click', function() {
+        const contentId = this.getAttribute('data-content');
+        
+        // Update navigation active state
+        mobileNavItems.forEach(navItem => navItem.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update content visibility
+        if (contentId === 'create') {
+            // Créer un dossier directement dans l'interface
+            createNewFolderInMobile();
+            return;
+        }
+        
+        mobileContentSections.forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        if (contentId === 'home') {
+            const homeContent = document.getElementById('mobile-home-content');
+            if (homeContent) {
+                homeContent.style.display = 'block';
+                appData.currentView = 'home';
+                updateContent();
+            }
+        } else if (contentId === 'explore') {
+            const exploreContent = document.getElementById('mobile-explore-content');
+            if (exploreContent) {
+                exploreContent.style.display = 'block';
+                appData.currentView = 'explore';
+            }
+        } else if (contentId === 'me') {
+            const meContent = document.getElementById('mobile-me-content');
+            if (meContent) {
+                meContent.style.display = 'block';
+                appData.currentView = 'me';
+            }
+        }
+    });
+});
+
+function initializeHeaderNavigation() {
+    // Bouton de création dans le header
+    const headerCreateBtn = document.querySelector('.header-create-btn');
+    if (headerCreateBtn) {
+        headerCreateBtn.addEventListener('click', function() {
+            createNewFolderInMobile();
+        });
+    }
+    
+    // Navigation items dans le header
+    const headerNavItems = document.querySelectorAll('.header-nav-item');
+    headerNavItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const contentId = this.getAttribute('data-content');
+            
+            // Update navigation active state
+            headerNavItems.forEach(navItem => navItem.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update content visibility
+            const mobileContentSections = document.querySelectorAll('.mobile-content');
+            mobileContentSections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Gérer l'affichage du chemin
+            const mobileView = document.querySelector('.mobile-view');
+            mobileView.classList.remove('storage-view');
+            
+            if (contentId === 'home') {
+                const homeContent = document.getElementById('mobile-home-content');
+                if (homeContent) {
+                    homeContent.style.display = 'block';
+                    appData.currentView = 'home';
+                    updateContent();
+                    
+                    // Vérifier si nous sommes dans Storage
+                    if (appData.currentPath.length > 1 && (appData.currentPath.includes('Storage') || appData.currentPath.includes('TasksStorage'))) {
+                        mobileView.classList.add('storage-view');
+                    }
+                }
+            } else if (contentId === 'explore') {
+                const exploreContent = document.getElementById('mobile-explore-content');
+                if (exploreContent) {
+                    exploreContent.style.display = 'block';
+                    appData.currentView = 'explore';
+                }
+            } else if (contentId === 'export') {
+                // Logique pour l'export
+                showToast('Export functionality coming soon', 'info');
+            } else if (contentId === 'me') {
+                const meContent = document.getElementById('mobile-me-content');
+                if (meContent) {
+                    meContent.style.display = 'block';
+                    appData.currentView = 'me';
+                }
+            }
+        });
+    });
+    
+    // Gestion du menu overflow
+    const overflowMenuBtn = document.querySelector('.overflow-menu-btn');
+    const overflowDropdown = document.querySelector('.overflow-dropdown');
+    
+    if (overflowMenuBtn && overflowDropdown) {
+        overflowMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            overflowDropdown.classList.toggle('show');
+        });
+        
+        // Fermer le dropdown quand on clique ailleurs
+        document.addEventListener('click', function() {
+            overflowDropdown.classList.remove('show');
+        });
+        
+        // Empêcher la fermeture quand on clique à l'intérieur du dropdown
+        overflowDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+}
+
+
+// Ajoutez cette variable d'état global
+appData.showMaskedItems = true; // Par défaut, afficher les éléments masqués
+
+// Fonction pour basculer l'état de masquage d'un élément et mettre à jour Supabase
+async function toggleItemMask(itemName) {
+    const currentFolder = getCurrentFolder();
+    if (currentFolder && currentFolder.items && currentFolder.items[itemName]) {
+        const item = currentFolder.items[itemName];
+        const itemType = item.type; // 'folder' ou 'app'
+        let newName = itemName;
+        
+        // Basculer l'état masqué
+        if (item.masked) {
+            delete item.masked;
+            // Enlever le préfixe # du nom si présent
+            if (itemName.startsWith('#')) {
+                newName = itemName.substring(1);
+                currentFolder.items[newName] = item;
+                delete currentFolder.items[itemName];
+            }
+        } else {
+            item.masked = true;
+            // Ajouter le préfixe # au nom s'il n'est pas présent
+            if (!itemName.startsWith('#')) {
+                newName = `#${itemName}`;
+                currentFolder.items[newName] = item;
+                delete currentFolder.items[itemName];
+            }
+        }
+        
+        // Mettre à jour dans Supabase
+        if (supabaseAvailable) {
+            try {
+                if (itemType === 'folder') {
+                    // Rechercher le dossier dans Supabase
+                    const { data: folderData, error: fetchError } = await supabase
+                        .from('folders')
+                        .select('id')
+                        .eq('name', itemName.startsWith('#') ? itemName.substring(1) : itemName)
+                        .eq('parent_path', JSON.stringify(appData.currentPath))
+                        .single();
+                        
+                    if (!fetchError && folderData) {
+                        // Mettre à jour le masquage et le nom si nécessaire
+                        const { error: updateError } = await supabase
+                            .from('folders')
+                            .update({ 
+                                is_masked: item.masked,
+                                name: newName 
+                            })
+                            .eq('id', folderData.id);
+                            
+                        if (updateError) {
+                            console.error('Erreur lors de la mise à jour du masquage du dossier:', updateError);
+                        }
+                    }
+                } else if (itemType === 'app') {
+                    // Rechercher l'application dans Supabase
+                    const { data: appData, error: fetchError } = await supabase
+                        .from('apps')
+                        .select('id')
+                        .eq('name', itemName.startsWith('#') ? itemName.substring(1) : itemName)
+                        .eq('folder_id', getFolderIdFromPath(appData.currentPath))
+                        .single();
+                        
+                    if (!fetchError && appData) {
+                        // Mettre à jour le masquage et le nom si nécessaire
+                        const { error: updateError } = await supabase
+                            .from('apps')
+                            .update({ 
+                                is_masked: item.masked,
+                                name: newName 
+                            })
+                            .eq('id', appData.id);
+                            
+                        if (updateError) {
+                            console.error('Erreur lors de la mise à jour du masquage de l\'application:', updateError);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Exception lors de la mise à jour du masquage:', error);
+            }
+        }
+        
+        return newName; // Retourner le nouveau nom
+    }
+    return itemName; // Retourner le nom d'origine si rien n'a changé
+}
+
+// Fonction utilitaire pour obtenir l'ID du dossier parent
+async function getFolderIdFromPath(path) {
+    if (!supabaseAvailable) return null;
+    
+    try {
+        const { data, error } = await supabase
+            .from('folders')
+            .select('id')
+            .eq('parent_path', JSON.stringify(path.slice(0, -1)))
+            .eq('name', path[path.length - 1])
+            .single();
+            
+        if (error) {
+            console.error('Erreur lors de la récupération de l\'ID du dossier:', error);
+            return null;
+        }
+        
+        return data?.id || null;
+    } catch (error) {
+        console.error('Exception lors de la récupération de l\'ID du dossier:', error);
+        return null;
+    }
+}
+
+
+// Fonction pour basculer l'affichage des éléments masqués
+function toggleShowMaskedItems() {
+    appData.showMaskedItems = !appData.showMaskedItems;
+    
+    // Ajouter ou supprimer la classe CSS du corps du document
+    if (!appData.showMaskedItems) {
+        document.body.classList.add('hide-masked-items');
+    } else {
+        document.body.classList.remove('hide-masked-items');
+    }
+    
+    updateContent();
+    return appData.showMaskedItems;
+}
+
+...
+
+// Fonction pour rafraîchir les données depuis Supabase
+async function refreshDataFromSupabase() {
+    if (!supabaseAvailable) return;
+    
+    try {
+        // Obtenir le chemin actuel pour identifier le dossier
+        const currentPath = appData.currentPath;
+        
+        // Si nous sommes dans un dossier spécifique dans Storage
+        if (currentPath.length >= 2 && currentPath[0] === 'Home' && currentPath[1] === 'Storage') {
+            // Construire le chemin du dossier parent
+            const parentPath = currentPath.slice(0, -1);
+            const folderName = currentPath[currentPath.length - 1];
+            
+            // Récupérer les informations à jour du dossier actuel
+            const { data: folderData, error: folderError } = await supabase
+                .from('folders')
+                .select('*')
+                .eq('name', folderName)
+                .eq('parent_path', JSON.stringify(parentPath))
+                .single();
+                
+            if (folderError) {
+                console.error('Erreur lors de la récupération des données du dossier:', folderError);
+            } else if (folderData) {
+                // Mettre à jour les données locales si nécessaire
+                const currentFolder = getCurrentFolder();
+                if (currentFolder._id !== folderData.id) {
+                    currentFolder._id = folderData.id;
+                }
+                
+                // Récupérer les applications de ce dossier
+                const { data: appsData, error: appsError } = await supabase
+                    .from('apps')
+                    .select('*')
+                    .eq('folder_id', folderData.id);
+                    
+                if (appsError) {
+                    console.error('Erreur lors de la récupération des applications:', appsError);
+                } else if (appsData) {
+                    // Synchroniser les applications si nécessaire
+                    console.log('Applications récupérées:', appsData);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Exception lors du rafraîchissement des données:', error);
+    }
+}
+
+// Fonction pour charger les dossiers depuis Supabase
+async function loadFoldersFromSupabase() {
+    if (!supabaseAvailable) {
+        console.log('Supabase n\'est pas disponible, chargement des dossiers ignoré');
+        return;
+    }
+    
+    try {
+        showToast('Chargement des dossiers...', 'info');
+        
+        // Charger tous les dossiers
+        const { data: folders, error: foldersError } = await supabase
+            .from('folders')
+            .select('*')
+            .order('created_at', { ascending: true });
+            
+        if (foldersError) {
+            console.error('Erreur lors du chargement des dossiers:', foldersError);
+            showToast('Erreur lors du chargement des dossiers', 'error');
+            return;
+        }
+        
+        // Charger toutes les applications
+        const { data: apps, error: appsError } = await supabase
+            .from('apps')
+            .select('*')
+            .order('created_at', { ascending: true });
+            
+        if (appsError) {
+            console.error('Erreur lors du chargement des applications:', appsError);
+            showToast('Erreur lors du chargement des applications', 'error');
+            return;
+        }
+        
+        // Créer les dossiers dans la structure locale
+        folders.forEach(folder => {
+            let currentNode = fileSystem;
+            const parentPath = Array.isArray(folder.parent_path) ? folder.parent_path : JSON.parse(folder.parent_path);
+            
+            // Naviguer jusqu'au dossier parent
+            for (const pathItem of parentPath) {
+                if (currentNode.items && currentNode.items[pathItem]) {
+                    currentNode = currentNode.items[pathItem];
+                } else if (currentNode[pathItem]) {
+                    currentNode = currentNode[pathItem];
+                } else {
+                    console.error(`Chemin parent non trouvé: ${pathItem} dans ${parentPath}`);
+                    return;
+                }
+            }
+            
+            // Créer le dossier s'il n'existe pas déjà
+            if (!currentNode.items[folder.name]) {
+                currentNode.items[folder.name] = {
+                    type: 'folder',
+                    items: {},
+                    _id: folder.id // Stocker l'ID pour référence future
+                };
+                
+                // Appliquer le masquage si nécessaire
+                if (folder.is_masked) {
+                    currentNode.items[folder.name].masked = true;
+                }
+            } else {
+                // Mettre à jour l'ID si le dossier existe déjà
+                currentNode.items[folder.name]._id = folder.id;
+            }
+        });
+        
+        // Ajouter les applications dans leurs dossiers respectifs
+        apps.forEach(app => {
+            // Trouver le dossier parent
+            const folder = folders.find(f => f.id === app.folder_id);
+            if (!folder) {
+                console.error(`Dossier parent non trouvé pour l'application: ${app.name}`);
+                return;
+            }
+            
+            let currentNode = fileSystem;
+            const parentPath = Array.isArray(folder.parent_path) ? folder.parent_path : JSON.parse(folder.parent_path);
+            
+            // Naviguer jusqu'au dossier parent
+            for (const pathItem of parentPath) {
+                if (currentNode.items && currentNode.items[pathItem]) {
+                    currentNode = currentNode.items[pathItem];
+                } else if (currentNode[pathItem]) {
+                    currentNode = currentNode[pathItem];
+                } else {
+                    console.error(`Chemin parent non trouvé: ${pathItem} dans ${parentPath}`);
+                    return;
+                }
+            }
+            
+            // Ajouter l'application au dossier
+            if (currentNode.items && currentNode.items[folder.name]) {
+                currentNode.items[folder.name].items[app.name] = {
+                    type: 'app',
+                    url: app.url,
+                    _id: app.id // Stocker l'ID de l'application
+                };
+                
+                // Appliquer le masquage si nécessaire
+                if (app.is_masked) {
+                    currentNode.items[folder.name].items[app.name].masked = true;
+                }
+            }
+        });
+        
+        // Mettre à jour l'interface
+        updateContent();
+        showToast('Dossiers chargés avec succès', 'success');
+        
+    } catch (error) {
+        console.error('Exception lors du chargement des dossiers:', error);
+        showToast('Erreur lors du chargement des dossiers', 'error');
+    }
+}
+
+
+
+// Fonction pour initialiser l'application principale - version modifiée complète
+async function initializeMainApplication() {
+    try {
+        // Initialisation de l'application
+        // Désactiver tous les éléments actifs du sidebar
+        document.querySelectorAll('.sidebar-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // S'assurer que nous commençons avec le Home
+        appData.currentPath = ['Home'];
+        updatePaths();
+        
+        // Activer l'onglet Home par défaut dans le header
+        document.querySelectorAll('.header-nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.getAttribute('data-content') === 'home') {
+                item.classList.add('active');
+            }
+        });
+        
+        // Initialiser la navigation du header
+        initializeHeaderNavigation();
+        
+        // Charger les dossiers depuis Supabase
+        if (supabaseAvailable) {
+            await loadFoldersFromSupabase();
+        }
+        
+        // Mettre à jour l'interface
+        updateContent();
+        
+        // Initialiser les toggle switches
+        initializeToggleSwitches();
+        
+        // Marquer l'application comme initialisée
+        appInitialized = true;
+        
+        // Si déjà authentifié mais pas encore transitionné, faire la transition
+        if (authenticationCompleted && !document.getElementById('app-section').classList.contains('visible')) {
+            AppTransitionManager.switchToApp();
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'initialisation de l\'application :', error);
+    }
+}
+
+
+
+        
+        // Initialiser l'application
+        initializeMainApplication();
+
+
+NB: Ce n'est pas tout mes codes que j'ai montré, j'ai juste montré certains parties.
+
+NB: J'avais mis les "." d'extesions des liens web entre [] mais il ne faut pas les [], c'était pour éviter que les liens soient lus
+
+NB: Pour le Storage des tâches rien ne doit être manuel, tout doit être automatique, pas des solutions manuelles, ne proposes aucunes alternatives manuelles, car la solution que tu vas proprosé ça doit garantir à 100000% de parfaitement fonctionner, sans aucun doute, une solution ultime
+
+NB: Tout ce qu'il faut faire dans supabase, faut me les donner très clairement,  je n'ai jamais utilisé supabase, je ne sais que créer des tables, s'il y'a des tables à créer ou des base de données, faut me donner des codes SQL , faut me montrer me dire où faire, quoi faire, comment faire, comment mettre, où trouver ce qu'il faut mettre/remplacer ... faut être ultra  précris sur ça 
+
+NB: Je mets toujours tout mon javascript de mon application, dans un seul et même fichier pour éviter d'être pertuber par plusieurs fichiers séparés
+
+Donne-moi des codes à modifier ou à ajouter avec précision, tu dois me dire quoi modifier, quoi ajouter, où le placer, faut être précis 
+
+Si tu modifies une fonction, tu dois écrire la fonction modifiée au complet, dans son intégralité, sans laisser des vides à compléter
