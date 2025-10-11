@@ -4022,11 +4022,22 @@ function createAppItem(name, url) {
         appItem.classList.add('masked-item');
     }
     appItem.setAttribute('data-name', name);
+    appItem.setAttribute('data-url', url); // Stocker l'URL
     
     const domain = url.replace('https://', '').split('/')[0];
     
+    // Vérifier si nous pouvons obtenir une favicon
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    
+    // Créer un élément img temporaire pour tester si la favicon existe
+    const tempImg = new Image();
+    tempImg.src = faviconUrl;
+    
+    // Utiliser une icône universelle ou la favicon selon disponibilité
+    let iconHtml = `<img src="${faviconUrl}" class="app-icon" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'64\\' height=\\'64\\' viewBox=\\'0 0 24 24\\'><path fill=\\'%235865F2\\' d=\\'M13.025 17H3.707l5.963-5.963L12 12.83l2.33-1.874L21 17h-7.975zM12 4L8 8.83l4 3.33 4-3.33-4-3.83z\\'/></svg>';">`;
+    
     appItem.innerHTML = `
-        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        ${iconHtml}
         <div class="item-name">${name.startsWith('#') ? name.substring(1) : name}</div>
         <div class="selection-checkbox"></div>
     `;
@@ -4053,8 +4064,14 @@ function createAppItem(name, url) {
                 makeItemNameEditable(e.target, this);
                 return;
             }
-            // Sinon, ouvrir l'application
-            showToast(`Opening ${name.startsWith('#') ? name.substring(1) : name}`, 'info');
+            
+            // Si le clic est sur l'icône ou ailleurs, ouvrir l'URL
+            const appUrl = this.getAttribute('data-url') || getCurrentFolder().items[this.getAttribute('data-name')].url;
+            if (appUrl) {
+                // Ouvrir l'URL dans un nouvel onglet
+                window.open(appUrl, '_blank');
+                showToast(`Ouverture de ${name.startsWith('#') ? name.substring(1) : name}`, 'info');
+            }
         }
     });
     
@@ -4073,6 +4090,7 @@ function createAppItem(name, url) {
     
     return appItem;
 }
+
 
 // Créer un élément tâche
 function createTaskItem(name, emoji) {
@@ -4363,11 +4381,15 @@ function createHomeAppItem(name, url, folderName) {
     appItem.className = 'app-item';
     appItem.setAttribute('data-name', name);
     appItem.setAttribute('data-folder', folderName);
+    appItem.setAttribute('data-url', url); // Stocker l'URL
     
     const domain = url.replace('https://', '').split('/')[0];
     
+    // Vérifier si nous pouvons obtenir une favicon
+    const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    
     appItem.innerHTML = `
-        <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="app-icon">
+        <img src="${faviconUrl}" class="app-icon" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'64\\' height=\\'64\\' viewBox=\\'0 0 24 24\\'><path fill=\\'%235865F2\\' d=\\'M13.025 17H3.707l5.963-5.963L12 12.83l2.33-1.874L21 17h-7.975zM12 4L8 8.83l4 3.33 4-3.33-4-3.83z\\'/></svg>';">
         <div class="item-name">${name}</div>
         <div class="selection-checkbox"></div>
     `;
@@ -4394,8 +4416,14 @@ function createHomeAppItem(name, url, folderName) {
                 makeHomeAppNameEditable(e.target, this);
                 return;
             }
-            // Ouvrir l'application
-            showToast(`Opening ${name}`, 'info');
+            
+            // Si le clic est sur l'icône ou ailleurs, ouvrir l'URL
+            const appUrl = this.getAttribute('data-url');
+            if (appUrl) {
+                // Ouvrir l'URL dans un nouvel onglet
+                window.open(appUrl, '_blank');
+                showToast(`Ouverture de ${name}`, 'info');
+            }
         }
     });
     
@@ -4406,6 +4434,7 @@ function createHomeAppItem(name, url, folderName) {
     
     return appItem;
 }
+
 
 // Nouvelle fonction pour créer un dossier directement dans la vue mobile et le sauvegarder dans Supabase
 async function createNewFolderInMobile() {
@@ -4492,6 +4521,18 @@ async function createNewApp(name, url, folderPath = null) {
         folderPath = appData.currentPath;
     }
     
+    // S'assurer que l'URL a un protocole
+    if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
+    }
+    
+    // Naviguer vers le dossier cible si nécessaire
+    let isCurrentFolder = true;
+    if (JSON.stringify(folderPath) !== JSON.stringify(appData.currentPath)) {
+        isCurrentFolder = false;
+        navigateTo(folderPath);
+    }
+    
     // Obtenir le dossier courant
     let currentFolder = getCurrentFolder();
     
@@ -4509,14 +4550,23 @@ async function createNewApp(name, url, folderPath = null) {
     // Créer l'application dans le système de fichiers local
     currentFolder.items[name] = {
         type: 'app',
-        url: url
+        url: url,
+        _tempId: Date.now() // Ajouter un ID temporaire
     };
     
     // Sauvegarder dans Supabase
     if (supabaseAvailable) {
         try {
             // Obtenir d'abord l'ID du dossier parent
-            const folderId = await getFolderIdFromPath(folderPath);
+            let folderId;
+            
+            // Si le dossier a déjà un ID stocké, l'utiliser
+            if (currentFolder._id) {
+                folderId = currentFolder._id;
+            } else {
+                // Sinon, chercher l'ID à partir du chemin
+                folderId = await getFolderIdFromPath(folderPath);
+            }
             
             if (folderId) {
                 const { data, error } = await supabase
@@ -4526,13 +4576,16 @@ async function createNewApp(name, url, folderPath = null) {
                         url: url,
                         folder_id: folderId,
                         is_masked: false
-                    });
+                    })
+                    .select();
                     
                 if (error) {
                     console.error('Erreur lors de la sauvegarde de l\'application:', error);
                     showToast('Erreur lors de la sauvegarde de l\'application', 'error');
-                } else {
-                    console.log('Application sauvegardée avec succès:', data);
+                } else if (data && data.length > 0) {
+                    // Stocker l'ID de l'application
+                    currentFolder.items[name]._id = data[0].id;
+                    console.log('Application sauvegardée avec succès:', data[0]);
                 }
             } else {
                 console.error('Impossible de trouver l\'ID du dossier parent');
@@ -4548,6 +4601,170 @@ async function createNewApp(name, url, folderPath = null) {
     updateContent();
     
     return name;
+}
+
+
+// Vérifier si une chaîne est une URL valide
+function isValidUrl(string) {
+    try {
+        // Accepter les URLs avec ou sans protocole
+        if (!string.match(/^https?:\/\//i)) {
+            string = 'https://' + string;
+        }
+        
+        const url = new URL(string);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch (e) {
+        return false;
+    }
+}
+
+// Extraire le nom du site à partir de l'URL
+function getSiteNameFromUrl(url) {
+    try {
+        // Assurer que l'URL a un protocole
+        if (!url.match(/^https?:\/\//i)) {
+            url = 'https://' + url;
+        }
+        
+        const urlObj = new URL(url);
+        
+        // Extraire le nom de domaine sans www. et sans extension
+        let domain = urlObj.hostname.replace(/^www\./, '');
+        let name = domain.split('.')[0];
+        
+        // Mettre la première lettre en majuscule
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch (e) {
+        // En cas d'erreur, générer un nom générique
+        return "Site Web";
+    }
+}
+
+// Extraire le domaine pour l'icône favicon
+function getDomainFromUrl(url) {
+    try {
+        // Assurer que l'URL a un protocole
+        if (!url.match(/^https?:\/\//i)) {
+            url = 'https://' + url;
+        }
+        
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch (e) {
+        // En cas d'erreur, retourner une chaîne vide
+        return "";
+    }
+}
+
+// Normaliser l'URL pour assurer qu'elle a un protocole
+function normalizeUrl(url) {
+    if (!url.match(/^https?:\/\//i)) {
+        return 'https://' + url;
+    }
+    return url;
+}
+
+// Traiter un lien collé
+async function processLink(url) {
+    // Normaliser l'URL
+    const normalizedUrl = normalizeUrl(url);
+    
+    // Extraire le nom du site
+    const siteName = getSiteNameFromUrl(normalizedUrl);
+    
+    // Déterminer le chemin où ajouter l'application
+    let targetPath;
+    
+    // Si nous sommes à Home ou dans Storage, ajouter dans "Divers"
+    if (appData.currentPath.length <= 2 && 
+        (appData.currentPath[0] === 'Home' && 
+         (appData.currentPath.length === 1 || appData.currentPath[1] === 'Storage'))) {
+        targetPath = ['Home', 'Storage', 'Divers'];
+        
+        // Créer le dossier Divers s'il n'existe pas
+        await ensureDiversFolderExists();
+        
+        // Naviguer vers le dossier Divers
+        navigateTo(targetPath);
+    } else {
+        // Sinon, ajouter dans le dossier actuel
+        targetPath = [...appData.currentPath];
+    }
+    
+    // Créer l'application dans le dossier cible
+    const appName = await createNewApp(siteName, normalizedUrl, targetPath);
+    
+    // Trouver l'élément app nouvellement créé pour éditer son nom
+    setTimeout(() => {
+        const appItem = document.querySelector(`.app-item[data-name="${appName}"]`);
+        if (appItem) {
+            const nameElement = appItem.querySelector('.item-name');
+            makeItemNameEditable(nameElement, appItem);
+        }
+    }, 200);
+    
+    // Confirmer l'ajout
+    showToast(`Lien ajouté: ${siteName}`, 'success');
+}
+
+// Assurer que le dossier "Divers" existe
+async function ensureDiversFolderExists() {
+    // Vérifier si le dossier existe déjà
+    if (fileSystem.Home.items.Storage.items.Divers) {
+        return;
+    }
+    
+    // Créer le dossier Divers
+    fileSystem.Home.items.Storage.items.Divers = {
+        type: 'folder',
+        items: {},
+        _tempId: Date.now()
+    };
+    
+    // Placer le dossier Divers en premier dans l'ordre
+    // Réorganiser les dossiers
+    const storage = fileSystem.Home.items.Storage.items;
+    const diversFolder = storage.Divers;
+    delete storage.Divers;
+    
+    const newStorage = {
+        Divers: diversFolder
+    };
+    
+    // Ajouter tous les autres dossiers après Divers
+    Object.keys(storage).forEach(key => {
+        newStorage[key] = storage[key];
+    });
+    
+    // Remplacer la structure
+    fileSystem.Home.items.Storage.items = newStorage;
+    
+    // Sauvegarder dans Supabase si disponible
+    if (supabaseAvailable) {
+        try {
+            const { data, error } = await supabase
+                .from('folders')
+                .insert({
+                    name: 'Divers',
+                    parent_path: ['Home', 'Storage'],
+                    is_masked: false
+                })
+                .select();
+                
+            if (error) {
+                console.error('Erreur lors de la création du dossier Divers:', error);
+            } else if (data && data.length > 0) {
+                // Stocker l'ID du dossier pour référence future
+                fileSystem.Home.items.Storage.items.Divers._id = data[0].id;
+            }
+        } catch (error) {
+            console.error('Exception lors de la création du dossier Divers:', error);
+        }
+    }
+    
+    // Mettre à jour l'interface
+    updateContent();
 }
 
     
@@ -5681,6 +5898,9 @@ function initializeQuickAddNav() {
     const linkIcon = document.querySelector('.fa-link.quick-add-icon');
     const noteIcon = document.querySelector('.fa-sticky-note.quick-add-icon');
     
+    // Créer le dossier "Divers" s'il n'existe pas
+    ensureDiversFolderExists();
+    
     // Focus sur l'input quand on clique sur le container
     quickAddContainer.addEventListener('click', function() {
         quickAddInput.focus();
@@ -5698,44 +5918,50 @@ function initializeQuickAddNav() {
         quickAddContainer.classList.remove('active');
     });
     
-    // Traiter le lien ou la note quand on appuie sur Entrée
-    quickAddInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && quickAddInput.value.trim() !== '') {
-            const inputValue = quickAddInput.value.trim();
+    // Intercepter le coller pour traitement immédiat
+    quickAddInput.addEventListener('paste', async function(e) {
+        // Empêcher le comportement par défaut du collage
+        e.preventDefault();
+        
+        // Récupérer le texte collé depuis le presse-papier
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const pastedData = clipboardData.getData('text');
+        
+        if (pastedData && isValidUrl(pastedData)) {
+            // Traiter le lien collé
+            await processLink(pastedData);
             
             // Vider l'input après traitement
             quickAddInput.value = '';
+        }
+    });
+    
+    // Gérer aussi l'input standard au cas où
+    quickAddInput.addEventListener('input', async function() {
+        const inputValue = quickAddInput.value.trim();
+        
+        // Vérifier si l'entrée est un lien valide
+        if (inputValue && isValidUrl(inputValue)) {
+            // Traiter le lien
+            await processLink(inputValue);
             
-            // Afficher un toast pour confirmer
-            showToast('Contenu ajouté avec succès', 'success');
+            // Vider l'input après traitement
+            quickAddInput.value = '';
         }
     });
     
     // Actions spécifiques quand on clique sur les icônes
     linkIcon.addEventListener('click', function() {
-        if (quickAddInput.value.trim() !== '') {
-            // Traiter comme un lien
-            const inputValue = quickAddInput.value.trim();
-            quickAddInput.value = '';
-            showToast('Lien ajouté avec succès', 'success');
-        } else {
-            quickAddInput.focus();
-            quickAddInput.setAttribute('placeholder', 'Collez un lien pour l\'ajouter à la collection...');
-        }
+        quickAddInput.focus();
+        quickAddInput.setAttribute('placeholder', 'Collez un lien pour l\'ajouter à la collection...');
     });
     
     noteIcon.addEventListener('click', function() {
-        if (quickAddInput.value.trim() !== '') {
-            // Traiter comme une note
-            const inputValue = quickAddInput.value.trim();
-            quickAddInput.value = '';
-            showToast('Note créée avec succès', 'success');
-        } else {
-            quickAddInput.focus();
-            quickAddInput.setAttribute('placeholder', 'Écrivez votre note ici...');
-        }
+        quickAddInput.focus();
+        quickAddInput.setAttribute('placeholder', 'Écrivez votre note ici...');
     });
 }
+
 
 // Appeler l'initialisation de la barre d'ajout rapide
 initializeQuickAddNav();
